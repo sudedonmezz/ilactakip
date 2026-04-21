@@ -13,7 +13,25 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'İlaç Takip',
-      theme: ThemeData(primarySwatch: Colors.teal),
+      theme: ThemeData(
+        primaryColor: Colors.teal,
+
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+
+        inputDecorationTheme: const InputDecorationTheme(
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.teal, width: 2),
+          ),
+          labelStyle: TextStyle(color: Colors.teal),
+        ),
+
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ),
       home: const LoginPage(),
     );
   }
