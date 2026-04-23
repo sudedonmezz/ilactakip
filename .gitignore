@@ -49,3 +49,23 @@ bin/
 obj/
 .vs/
 
+mobile/build/
+mobile/.dart_tool/
+**/bin/
+**/obj/
+.vs/
+.DS_Store
+
+# Flutter build outputs
+mobile/build/
+**/build/
+.dart_tool/
+mobile/.dart_tool/
+
+# .NET
+**/bin/
+**/obj/
+.vs/
+
+# macOS
+.DS_Store
