@@ -14,22 +14,12 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'İlaç Takip',
       theme: ThemeData(
-        primaryColor: Colors.teal,
-
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-
-        inputDecorationTheme: const InputDecorationTheme(
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.teal, width: 2),
-          ),
-          labelStyle: TextStyle(color: Colors.teal),
-        ),
-
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-            foregroundColor: Colors.white,
-          ),
+        useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white,
+          centerTitle: true,
         ),
       ),
       home: const LoginPage(),
