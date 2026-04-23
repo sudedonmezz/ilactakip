@@ -60,14 +60,14 @@ class _ProfileCompletePageState extends State<ProfileCompletePage> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomePage(
-            email: updatedUser["email"],
-          ),
-        ),
-      );
+    Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(
+    builder: (context) => HomePage(
+      userId: updatedUser["id"] ?? updatedUser["Id"],
+    ),
+  ),
+);
     } catch (e) {
       String message = e.toString();
       if (message.startsWith("Exception: ")) {
@@ -150,7 +150,7 @@ class _ProfileCompletePageState extends State<ProfileCompletePage> {
                   const SizedBox(height: 16),
 
                   DropdownButtonFormField<String>(
-                    value: selectedGender,
+                    initialValue: selectedGender,
                     decoration: _inputDecoration(
                       label: "Cinsiyet",
                       icon: Icons.person,

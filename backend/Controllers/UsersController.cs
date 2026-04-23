@@ -94,6 +94,38 @@ public async Task<IActionResult> UpdateProfile(int id, [FromBody] User updatedUs
     return Ok(user);
 }
 
+[HttpPut("{id}")]
+public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserRequest request)
+{
+    var user = await _context.Users.FindAsync(id);
+
+    if (user == null)
+    {
+        return NotFound(new { message = "Kullanıcı bulunamadı" });
+    }
+
+    var emailExists = await _context.Users
+        .AnyAsync(u => u.Email == request.Email && u.Id != id);
+
+    if (emailExists)
+    {
+        return BadRequest(new { message = "Bu email zaten sisteme kayıtlı" });
+    }
+
+    user.Fullname = request.Fullname;
+    user.Age = request.Age;
+    user.Gender = request.Gender;
+    user.Weight = request.Weight;
+    user.Height = request.Height;
+    user.ChronicDisease = request.ChronicDisease;
+    user.Email = request.Email;
+    user.Password = request.Password;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(user);
+}
+
 [HttpPatch("{id}/profile")]
 public async Task<IActionResult> PatchProfile(int id, [FromBody] UpdateProfileRequest request)
 {
@@ -120,6 +152,19 @@ public async Task<IActionResult> PatchProfile(int id, [FromBody] UpdateProfileRe
         user.ChronicDisease = request.ChronicDisease;
 
     await _context.SaveChangesAsync();
+
+    return Ok(user);
+}
+
+[HttpGet("{id}")]
+public async Task<IActionResult> GetUserById(int id)
+{
+    var user = await _context.Users.FindAsync(id);
+
+    if (user == null)
+    {
+        return NotFound(new { message = "Kullanıcı bulunamadı" });
+    }
 
     return Ok(user);
 }

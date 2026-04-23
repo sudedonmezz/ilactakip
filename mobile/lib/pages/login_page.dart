@@ -62,9 +62,9 @@ if (profileIncomplete) {
   Navigator.pushReplacement(
     context,
     MaterialPageRoute(
-      builder: (context) => HomePage(
-        email: user["email"] ?? email,
-      ),
+     builder: (context) => HomePage(
+  userId: user["id"] ?? user["Id"],
+),
     ),
   );
 }

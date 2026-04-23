@@ -1,11 +1,53 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
+import 'profile_page.dart';
+import '../services/api_services.dart';
+import 'medication_list_page.dart';
+import 'add_medication_page.dart';
 
-class HomePage extends StatelessWidget {
-  final String email;
+class HomePage extends StatefulWidget {
+  final int userId;
 
-  const HomePage({super.key, required this.email});
 
+  const HomePage({super.key, required this.userId});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+
+class _HomePageState extends State<HomePage> {
+  String fullname = "x";
+  int medicationCount = 0;
+
+  @override
+  @override
+void initState() {
+  super.initState();
+  getUserInfo();
+  getMedicationCount();
+}
+Future<void> getMedicationCount() async {
+  final meds = await ApiService.getMedications(widget.userId);
+
+  print("İLAÇ SAYISI: ${meds.length}");
+
+  if (!mounted) return;
+
+  setState(() {
+    medicationCount = meds.length;
+  });
+}
+
+  Future<void> getUserInfo() async {
+    final user = await ApiService.getUser(widget.userId);
+
+    if (!mounted) return;
+
+    setState(() {
+      fullname = user["fullname"] ?? user["Fullname"] ?? "Kullanıcı";
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,12 +141,12 @@ child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "Hoş geldin",
+            "Hoş geldin !",
             style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 4),
           Text(
-            email.isEmpty ? "Kullanıcı" : email,
+            "$fullname",
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
@@ -129,7 +171,7 @@ child: Row(
                   child: _buildMiniInfoCard(
                     icon: Icons.medication,
                     title: "İlaçlarım",
-                    value: "3",
+                    value: medicationCount.toString(),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -143,19 +185,37 @@ child: Row(
               ],
             ),
             const SizedBox(height: 24),
-            _buildMenuCard(
-              icon: Icons.medication_rounded,
-              title: "İlaçlarım",
-              subtitle: "Eklediğiniz ilaçları görüntüleyin",
-              onTap: () {},
-            ),
+          _buildMenuCard(
+  icon: Icons.add_circle_outline,
+  title: "İlaç Ekle",
+  subtitle: "Yeni ilaç ve saat bilgisi ekleyin",
+  onTap: () async {
+  final result = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => AddMedicationPage(userId: widget.userId),
+    ),
+  );
+
+  if (result == true) {
+    getMedicationCount();
+  }
+},
+),
             const SizedBox(height: 14),
-            _buildMenuCard(
-              icon: Icons.add_circle_outline,
-              title: "İlaç Ekle",
-              subtitle: "Yeni ilaç ve saat bilgisi ekleyin",
-              onTap: () {},
-            ),
+_buildMenuCard(
+  icon: Icons.medication_rounded,
+  title: "İlaçlarım",
+  subtitle: "Eklediğiniz ilaçları görüntüleyin",
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MedicationListPage(userId: widget.userId),
+      ),
+    );
+  },
+),
             const SizedBox(height: 14),
             _buildMenuCard(
               icon: Icons.monitor_heart_outlined,
@@ -171,12 +231,19 @@ child: Row(
               onTap: () {},
             ),
             const SizedBox(height: 14),
-            _buildMenuCard(
-              icon: Icons.person_outline,
-              title: "Profil",
-              subtitle: "Hesap bilgilerinizi görüntüleyin",
-              onTap: () {},
-            ),
+           _buildMenuCard(
+  icon: Icons.person_outline,
+  title: "Profil",
+  subtitle: "Hesap bilgilerinizi görüntüleyin",
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(userId: widget.userId),
+      ),
+    );
+  },
+),
           ],
         ),
       ),
