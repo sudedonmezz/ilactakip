@@ -8,53 +8,233 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Ana Sayfa"), centerTitle: true),
-      body: Padding(
+      backgroundColor: const Color(0xFFE8F5E9),
+      appBar: AppBar(
+        title: const Text("Ana Sayfa"),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Card(
-              elevation: 4,
-              child: ListTile(
-                leading: const Icon(Icons.person, color: Colors.teal),
-                title: const Text("Hoş geldin"),
-                subtitle: Text(email.isEmpty ? "Kullanıcı" : email),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.teal, Color(0xFF26A69A)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 16,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 34,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Hoş geldin",
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          email.isEmpty ? "Kullanıcı" : email,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          "Sağlığını düzenli takip et",
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            Card(
-              elevation: 4,
-              child: ListTile(
-                leading: const Icon(Icons.medication, color: Colors.teal),
-                title: const Text("İlaçlarım"),
-                subtitle: const Text("Henüz ilaç eklenmedi"),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {},
-              ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMiniInfoCard(
+                    icon: Icons.medication,
+                    title: "İlaçlarım",
+                    value: "3",
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildMiniInfoCard(
+                    icon: Icons.notifications_active,
+                    title: "Hatırlatma",
+                    value: "2",
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Card(
-              elevation: 4,
-              child: ListTile(
-                leading: const Icon(Icons.monitor_heart, color: Colors.teal),
-                title: const Text("Kan Şekeri Takibi"),
-                subtitle: const Text("Ölçümlerinizi görüntüleyin"),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {},
-              ),
+            const SizedBox(height: 24),
+            _buildMenuCard(
+              icon: Icons.medication_rounded,
+              title: "İlaçlarım",
+              subtitle: "Eklediğiniz ilaçları görüntüleyin",
+              onTap: () {},
             ),
-            const SizedBox(height: 12),
-            Card(
-              elevation: 4,
-              child: ListTile(
-                leading: const Icon(Icons.notifications, color: Colors.teal),
-                title: const Text("Hatırlatmalar"),
-                subtitle: const Text("İlaç saatlerinizi yönetin"),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {},
-              ),
+            const SizedBox(height: 14),
+            _buildMenuCard(
+              icon: Icons.add_circle_outline,
+              title: "İlaç Ekle",
+              subtitle: "Yeni ilaç ve saat bilgisi ekleyin",
+              onTap: () {},
+            ),
+            const SizedBox(height: 14),
+            _buildMenuCard(
+              icon: Icons.monitor_heart_outlined,
+              title: "Kan Şekeri Takibi",
+              subtitle: "Ölçümlerinizi kaydedin ve inceleyin",
+              onTap: () {},
+            ),
+            const SizedBox(height: 14),
+            _buildMenuCard(
+              icon: Icons.notifications_none,
+              title: "Hatırlatmalar",
+              subtitle: "İlaç saatlerinizi yönetin",
+              onTap: () {},
+            ),
+            const SizedBox(height: 14),
+            _buildMenuCard(
+              icon: Icons.person_outline,
+              title: "Profil",
+              subtitle: "Hesap bilgilerinizi görüntüleyin",
+              onTap: () {},
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniInfoCard({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.teal, size: 30),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.teal,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      elevation: 3,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.teal.shade50,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: Colors.teal, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, color: Colors.teal, size: 18),
+            ],
+          ),
         ),
       ),
     );
