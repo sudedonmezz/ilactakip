@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_page.dart';
 
 class HomePage extends StatelessWidget {
   final String email;
@@ -9,12 +10,52 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFE8F5E9),
-      appBar: AppBar(
-        title: const Text("Ana Sayfa"),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+     appBar: AppBar(
+  title: const Text("Ana Sayfa"),
+  backgroundColor: Colors.teal,
+  foregroundColor: Colors.white,
+  elevation: 0,
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.logout),
+      tooltip: "Çıkış Yap",
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Çıkış Yap"),
+            content: const Text("Hesabınızdan çıkmak istiyor musunuz?"),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text("İptal"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginPage(),
+                    ),
+                    (route) => false,
+                  );
+                },
+                child: const Text(
+                  "Çıkış Yap",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  ],
+),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -37,49 +78,49 @@ class HomePage extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 34,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Hoş geldin",
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          email.isEmpty ? "Kullanıcı" : email,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          "Sağlığını düzenli takip et",
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+child: Row(
+  children: [
+    Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.person,
+        color: Colors.white,
+        size: 34,
+      ),
+    ),
+    const SizedBox(width: 16),
+    Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Hoş geldin",
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            email.isEmpty ? "Kullanıcı" : email,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            "Sağlığını düzenli takip et",
+            style: TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+        ],
+      ),
+    ),
+  ],
+),
             ),
             const SizedBox(height: 24),
             Row(

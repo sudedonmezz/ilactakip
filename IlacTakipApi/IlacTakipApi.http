@@ -1,0 +1,6 @@
+@IlacTakipApi_HostAddress = http://localhost:5182
+
+GET {{IlacTakipApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

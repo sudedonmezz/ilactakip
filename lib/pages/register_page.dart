@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_services.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -20,32 +21,64 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void kayitOl() async {
-    String adSoyad = adSoyadController.text.trim();
-    String email = emailController.text.trim();
-    String sifre = sifreController.text.trim();
+ void kayitOl() async {
+  String adSoyad = adSoyadController.text.trim();
+  String email = emailController.text.trim();
+  String sifre = sifreController.text.trim();
 
-    await showDialog(
+  if (adSoyad.isEmpty || email.isEmpty || sifre.isEmpty) {
+    showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Kayıt Bilgileri"),
-          content: Text("Ad Soyad: $adSoyad\nEmail: $email\nŞifre: $sifre"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("Tamam"),
-            ),
-          ],
-        );
-      },
+      builder: (context) => const AlertDialog(
+        title: Text("Hata"),
+        content: Text("Lütfen tüm alanları doldurun"),
+      ),
+    );
+    return;
+  }
+
+  try {
+    await ApiService.registerUser(
+      fullName: adSoyad,
+      email: email,
+      password: sifre,
     );
 
     if (!mounted) return;
-    Navigator.pop(context);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Başarılı"),
+        content: const Text("Kayıt oluşturuldu"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // popup kapanır
+              Navigator.pop(context); // login'e döner
+            },
+            child: const Text("Tamam"),
+          ),
+        ],
+      ),
+    );
+  } catch (e) {
+  String message = e.toString();
+
+  // "Exception: " kısmını kaldır
+  if (message.startsWith("Exception: ")) {
+    message = message.replaceFirst("Exception: ", "");
   }
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Hata"),
+      content: Text(message),
+    ),
+  );
+}
+}
 
   @override
   Widget build(BuildContext context) {

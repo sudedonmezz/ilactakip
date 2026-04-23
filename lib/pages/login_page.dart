@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'register_page.dart';
+import '../services/api_services.dart';
 import 'home_page.dart';
+import 'profile_complete_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,35 +22,72 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void girisYap() async {
-    String email = emailController.text.trim();
-    String sifre = sifreController.text.trim();
+void girisYap() async {
+  String email = emailController.text.trim();
+  String sifre = sifreController.text.trim();
 
-    await showDialog(
+  if (email.isEmpty || sifre.isEmpty) {
+    showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Giriş Bilgileri"),
-          content: Text("Email: $email\nŞifre: $sifre"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("Tamam"),
-            ),
-          ],
-        );
-      },
+      builder: (context) => const AlertDialog(
+        title: Text("Hata"),
+        content: Text("Email ve şifre boş olamaz"),
+      ),
     );
+    return;
+  }
+
+  try {
+    final user = await ApiService.loginUser(
+  email: email,
+  password: sifre,
+);
+
+if (!mounted) return;
+
+final bool profileIncomplete =
+    user["age"] == null ||
+    user["gender"] == null ||
+    user["weight"] == null ||
+    user["height"] == null;
+
+if (profileIncomplete) {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ProfileCompletePage(user: user),
+    ),
+  );
+} else {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (context) => HomePage(
+        email: user["email"] ?? email,
+      ),
+    ),
+  );
+}
+  } catch (e) {
+
+    String message = e.toString();
+
+  // "Exception: " kısmını kaldır
+  if (message.startsWith("Exception: ")) {
+    message = message.replaceFirst("Exception: ", "");
+  }
 
     if (!mounted) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => HomePage(email: email)),
-    );
+     showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Giriş Başarısız"),
+      content: Text(message),
+    ),
+  );
   }
+}
 
   void registerSayfasinaGit() {
     Navigator.push(
