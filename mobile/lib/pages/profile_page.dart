@@ -25,94 +25,383 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final data = await ApiService.getUser(widget.userId);
 
+      if (!mounted) return;
+
       setState(() {
         user = data;
         isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         isLoading = false;
       });
+
+      showMessage("Hata", e.toString());
     }
   }
 
   String getValue(dynamic value) {
-    if (value == null || value.toString().isEmpty) {
+    if (value == null || value.toString().trim().isEmpty) {
       return "Bilgi yok";
     }
     return value.toString();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8F5E9),
-     appBar: AppBar(
-  title: const Text("Profil"),
-  backgroundColor: Colors.teal,
-  foregroundColor: Colors.white,
-  actions: [
-    IconButton(
-      icon: const Icon(Icons.edit),
-      onPressed: user == null
-          ? null
-          : () async {
-              final updatedUser = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditProfilePage(user: user!),
-                ),
-              );
+  dynamic getField(String lower, String upper) {
+    return user?[lower] ?? user?[upper];
+  }
 
-              if (updatedUser != null) {
-                setState(() {
-                  user = updatedUser;
-                });
-              }
-            },
-    ),
-  ],
-),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : user == null
-              ? const Center(child: Text("Kullanıcı bulunamadı"))
-              : Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _buildCard("Ad Soyad", getValue(user!["fullname"] ?? user!["Fullname"])),
-                      _buildCard("Email", getValue(user!["email"] ?? user!["Email"])),
-                      _buildCard("Yaş", getValue(user!["age"] ?? user!["Age"])),
-                      _buildCard("Cinsiyet", getValue(user!["gender"] ?? user!["Gender"])),
-                      _buildCard("Kilo", getValue(user!["weight"] ?? user!["Weight"])),
-                      _buildCard("Boy", getValue(user!["height"] ?? user!["Height"])),
-                      _buildCard("Hastalık", getValue(user!["chronicDisease"] ?? user!["ChronicDisease"])),
-                    ],
-                  ),
-                ),
+  void showMessage(String title, String message) {
+    if (message.startsWith("Exception: ")) {
+      message = message.replaceFirst("Exception: ", "");
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Tamam"),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildCard(String title, String value) {
+  Future<void> openEditProfilePage() async {
+    if (user == null) return;
+
+    final updatedUser = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfilePage(user: user!),
+      ),
+    );
+
+    if (updatedUser != null) {
+      setState(() {
+        user = updatedUser;
+      });
+    }
+  }
+
+  Widget headerCard() {
+    final fullname = getValue(getField("fullname", "Fullname"));
+    final email = getValue(getField("email", "Email"));
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Colors.teal, Color(0xFF26A69A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 18,
+            offset: Offset(0, 9),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 82,
+            height: 82,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person,
+              color: Colors.white,
+              size: 44,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            fullname,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 23,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            email,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: openEditProfilePage,
+              icon: const Icon(Icons.edit),
+              label: const Text(
+                "Profili Düzenle",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.teal,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget sectionTitle(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.teal, size: 21),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget infoCard({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    final bool isEmpty = value == "Bilgi yok";
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(22),
         boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10),
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 14,
+            offset: Offset(0, 7),
+          ),
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(value),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.teal.shade50,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(
+              icon,
+              color: Colors.teal,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: isEmpty ? Colors.black38 : Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget profileContent() {
+    return RefreshIndicator(
+      color: Colors.teal,
+      onRefresh: fetchUser,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            headerCard(),
+            const SizedBox(height: 24),
+
+            sectionTitle("Kişisel Bilgiler", Icons.person_outline),
+
+            infoCard(
+              icon: Icons.person,
+              title: "Ad Soyad",
+              value: getValue(getField("fullname", "Fullname")),
+            ),
+            infoCard(
+              icon: Icons.email,
+              title: "Email",
+              value: getValue(getField("email", "Email")),
+            ),
+            infoCard(
+              icon: Icons.cake,
+              title: "Yaş",
+              value: getValue(getField("age", "Age")),
+            ),
+            infoCard(
+              icon: Icons.person_outline,
+              title: "Cinsiyet",
+              value: getValue(getField("gender", "Gender")),
+            ),
+
+            const SizedBox(height: 16),
+
+            sectionTitle("Sağlık Bilgileri", Icons.health_and_safety),
+
+            infoCard(
+              icon: Icons.monitor_weight,
+              title: "Kilo",
+              value: "${getValue(getField("weight", "Weight"))} kg",
+            ),
+            infoCard(
+              icon: Icons.height,
+              title: "Boy",
+              value: "${getValue(getField("height", "Height"))} cm",
+            ),
+            infoCard(
+              icon: Icons.medical_information,
+              title: "Kronik Hastalık",
+              value: getValue(
+                getField("chronicDisease", "ChronicDisease"),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget errorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 46,
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              "Kullanıcı bulunamadı",
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Profil bilgileri alınamadı. Tekrar deneyebilirsiniz.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.black54,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 22),
+            ElevatedButton.icon(
+              onPressed: fetchUser,
+              icon: const Icon(Icons.refresh),
+              label: const Text("Tekrar Dene"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 13,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8F5E9),
+      appBar: AppBar(
+        title: const Text("Profil"),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: user == null ? null : openEditProfilePage,
+          ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : user == null
+              ? errorState()
+              : profileContent(),
     );
   }
 }
