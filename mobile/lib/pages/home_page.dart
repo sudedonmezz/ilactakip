@@ -5,6 +5,7 @@ import '../services/api_services.dart';
 import 'medication_list_page.dart';
 import 'add_medication_page.dart';
 import 'reminder_list_page.dart';
+import 'medication_log_stats_page.dart';
 
 class HomePage extends StatefulWidget {
   final int userId;
@@ -66,16 +67,11 @@ class _HomePageState extends State<HomePage> {
               Navigator.pop(context);
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const LoginPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const LoginPage()),
                 (route) => false,
               );
             },
-            child: const Text(
-              "Çıkış Yap",
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text("Çıkış Yap", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -156,11 +152,7 @@ class _HomePageState extends State<HomePage> {
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 36,
-            ),
+            child: const Icon(Icons.person, color: Colors.white, size: 36),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -169,10 +161,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 const Text(
                   "Hoş geldin",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -258,10 +247,7 @@ class _HomePageState extends State<HomePage> {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.black45,
-              fontSize: 11,
-            ),
+            style: const TextStyle(color: Colors.black45, fontSize: 11),
           ),
         ],
       ),
@@ -346,11 +332,7 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.teal,
-                size: 18,
-              ),
+              const Icon(Icons.arrow_forward_ios, color: Colors.teal, size: 18),
             ],
           ),
         ),
@@ -404,10 +386,7 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(height: 4),
                 Text(
                   "Yakında aktif olacak",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
                 ),
               ],
             ),
@@ -509,6 +488,23 @@ class _HomePageState extends State<HomePage> {
                 onTap: openReminderListPage,
               ),
               const SizedBox(height: 14),
+
+              quickActionCard(
+                icon: Icons.analytics_outlined,
+                title: "İlaç Analizi",
+                subtitle: "Zamanında alma oranlarını görüntüleyin",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          MedicationLogStatsPage(userId: widget.userId),
+                    ),
+                  );
+                },
+              ),
+
+               const SizedBox(height: 14),
 
               quickActionCard(
                 icon: Icons.person_outline,

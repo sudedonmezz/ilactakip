@@ -1,0 +1,687 @@
+import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../services/api_services.dart';
+
+class MedicationLogStatsPage extends StatefulWidget {
+  final int userId;
+
+  const MedicationLogStatsPage({super.key, required this.userId});
+
+  @override
+  State<MedicationLogStatsPage> createState() => _MedicationLogStatsPageState();
+}
+
+class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
+  List logs = [];
+  bool isLoading = true;
+  String selectedRange = "Daily";
+
+  final int onTimeToleranceMinutes = 30;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchLogs();
+  }
+
+  Future<void> fetchLogs() async {
+    try {
+      final data = await ApiService.getMedicationLogs(widget.userId);
+
+      if (!mounted) return;
+
+      setState(() {
+        logs = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
+
+      showMessage("Hata", e.toString());
+    }
+  }
+
+  void showMessage(String title, String message) {
+    if (message.startsWith("Exception: ")) {
+      message = message.replaceFirst("Exception: ", "");
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Tamam"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  DateTime parseDate(dynamic value) {
+    return DateTime.parse(value.toString());
+  }
+bool isOnTime(dynamic log) {
+  final scheduled = parseDate(log["scheduledDateTime"]);
+  final takenRaw = log["takenDateTime"];
+
+  if (takenRaw == null) return false;
+
+  final taken = parseDate(takenRaw);
+
+  final earliest = scheduled.subtract(
+    Duration(minutes: onTimeToleranceMinutes),
+  );
+
+  final latest = scheduled.add(
+    Duration(minutes: onTimeToleranceMinutes),
+  );
+
+  return (taken.isAfter(earliest) || taken.isAtSameMomentAs(earliest)) &&
+      (taken.isBefore(latest) || taken.isAtSameMomentAs(latest));
+}
+
+  DateTime rangeStartDate() {
+    final now = DateTime.now();
+
+    if (selectedRange == "Daily") {
+      return DateTime(now.year, now.month, now.day);
+    }
+
+    if (selectedRange == "Weekly") {
+      return now.subtract(const Duration(days: 6));
+    }
+
+    if (selectedRange == "Monthly") {
+      return DateTime(now.year, now.month - 1, now.day);
+    }
+
+    if (selectedRange == "SixMonths") {
+      return DateTime(now.year, now.month - 6, now.day);
+    }
+
+    return DateTime(now.year - 1, now.month, now.day);
+  }
+
+  List get filteredLogs {
+    final start = rangeStartDate();
+
+    return logs.where((log) {
+      final scheduled = parseDate(log["scheduledDateTime"]);
+      return scheduled.isAfter(start) || scheduled.isAtSameMomentAs(start);
+    }).toList();
+  }
+
+  int get totalTaken => filteredLogs.length;
+
+  int get onTimeCount {
+    return filteredLogs.where((log) => isOnTime(log)).length;
+  }
+
+  int get lateCount {
+    return filteredLogs.length - onTimeCount;
+  }
+
+  double get onTimeRate {
+    if (filteredLogs.isEmpty) return 0;
+    return (onTimeCount / filteredLogs.length) * 100;
+  }
+
+  List<Map<String, dynamic>> chartData() {
+    final now = DateTime.now();
+
+    if (selectedRange == "Daily") {
+      return List.generate(24, (index) {
+        final hourLogs = filteredLogs.where((log) {
+          final scheduled = parseDate(log["scheduledDateTime"]);
+          return scheduled.hour == index;
+        }).toList();
+
+        final total = hourLogs.length;
+        final onTime = hourLogs.where((log) => isOnTime(log)).length;
+        final rate = total == 0 ? 0.0 : (onTime / total) * 100;
+
+        return {
+          "label": index.toString(),
+          "rate": rate,
+        };
+      });
+    }
+
+    if (selectedRange == "Weekly") {
+      return List.generate(7, (index) {
+        final date = now.subtract(Duration(days: 6 - index));
+
+        final dayLogs = filteredLogs.where((log) {
+          final scheduled = parseDate(log["scheduledDateTime"]);
+          return scheduled.year == date.year &&
+              scheduled.month == date.month &&
+              scheduled.day == date.day;
+        }).toList();
+
+        final total = dayLogs.length;
+        final onTime = dayLogs.where((log) => isOnTime(log)).length;
+        final rate = total == 0 ? 0.0 : (onTime / total) * 100;
+
+        return {
+          "label": "${date.day}/${date.month}",
+          "rate": rate,
+        };
+      });
+    }
+
+    if (selectedRange == "Monthly") {
+      return List.generate(4, (index) {
+        final start = now.subtract(Duration(days: (4 - index) * 7));
+        final end = start.add(const Duration(days: 7));
+
+        final weekLogs = filteredLogs.where((log) {
+          final scheduled = parseDate(log["scheduledDateTime"]);
+          return scheduled.isAfter(start) && scheduled.isBefore(end);
+        }).toList();
+
+        final total = weekLogs.length;
+        final onTime = weekLogs.where((log) => isOnTime(log)).length;
+        final rate = total == 0 ? 0.0 : (onTime / total) * 100;
+
+        return {
+          "label": "${index + 1}. Hafta",
+          "rate": rate,
+        };
+      });
+    }
+
+    final monthCount = selectedRange == "SixMonths" ? 6 : 12;
+
+    return List.generate(monthCount, (index) {
+      final date = DateTime(now.year, now.month - (monthCount - 1 - index), 1);
+
+      final monthLogs = filteredLogs.where((log) {
+        final scheduled = parseDate(log["scheduledDateTime"]);
+        return scheduled.year == date.year && scheduled.month == date.month;
+      }).toList();
+
+      final total = monthLogs.length;
+      final onTime = monthLogs.where((log) => isOnTime(log)).length;
+      final rate = total == 0 ? 0.0 : (onTime / total) * 100;
+
+      return {
+        "label": "${date.month}/${date.year.toString().substring(2)}",
+        "rate": rate,
+      };
+    });
+  }
+
+  String rangeText(String value) {
+    if (value == "Daily") return "Günlük";
+    if (value == "Weekly") return "Haftalık";
+    if (value == "Monthly") return "Aylık";
+    if (value == "SixMonths") return "6 Aylık";
+    if (value == "Yearly") return "Yıllık";
+    return value;
+  }
+
+  Widget rangeSelector() {
+    final ranges = ["Daily", "Weekly", "Monthly", "SixMonths", "Yearly"];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: ranges.map((range) {
+          final selected = selectedRange == range;
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              selected: selected,
+              label: Text(rangeText(range)),
+              selectedColor: Colors.teal,
+              labelStyle: TextStyle(
+                color: selected ? Colors.white : Colors.teal,
+                fontWeight: FontWeight.bold,
+              ),
+              backgroundColor: Colors.teal.shade50,
+              onSelected: (_) {
+                setState(() {
+                  selectedRange = range;
+                });
+              },
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget chartCard() {
+    final data = chartData();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 14,
+            offset: Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Zamanında Alma Oranı",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Seçilen dönemde ilaçları zamanında alma oranınız",
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 220,
+            child: BarChart(
+              BarChartData(
+                maxY: 100,
+                minY: 0,
+                gridData: FlGridData(show: true),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 36,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          "${value.toInt()}%",
+                          style: const TextStyle(fontSize: 10),
+                        );
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 34,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+
+                        if (index < 0 || index >= data.length) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            data[index]["label"],
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: List.generate(data.length, (index) {
+                  final rate = data[index]["rate"] as double;
+
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: rate,
+                        width: selectedRange == "Daily" ? 8 : 16,
+                        color: Colors.teal,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget summaryCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Colors.teal, Color(0xFF26A69A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.analytics,
+              color: Colors.white,
+              size: 34,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "İlaç Takip Analizi",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "%${onTimeRate.toStringAsFixed(0)} zamanında",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  "$totalTaken kayıt incelendi",
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget statBox({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget logsList() {
+    final sorted = [...filteredLogs];
+
+    sorted.sort((a, b) {
+  final aDate = parseDate(a["scheduledDateTime"]);
+  final bDate = parseDate(b["scheduledDateTime"]);
+  return bDate.compareTo(aDate); 
+});
+
+final visibleLogs = sorted.take(10).toList();
+
+    if (sorted.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: const Text(
+          "Bu dönem için kayıt bulunamadı.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.black54),
+        ),
+      );
+    }
+
+    return Column(
+      children: visibleLogs.map((log) {
+        final scheduled = parseDate(log["scheduledDateTime"]);
+        final takenRaw = log["takenDateTime"];
+        final taken = takenRaw == null ? null : parseDate(takenRaw);
+        final medicationName = log["medicationName"] ?? "İlaç";
+        final onTime = isOnTime(log);
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 12,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: onTime ? Colors.green.shade50 : Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  onTime ? Icons.check_circle : Icons.schedule,
+                  color: onTime ? Colors.green : Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      medicationName.toString(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      "Planlanan: ${formatDateTime(scheduled)}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    Text(
+                      "Alınan: ${taken == null ? "Yok" : formatDateTime(taken)}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                onTime ? "Zamanında" : "Geç",
+                style: TextStyle(
+                  color: onTime ? Colors.green : Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String formatDateTime(DateTime date) {
+    return "${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year} "
+        "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8F5E9),
+      appBar: AppBar(
+        title: const Text("İlaç Analizi"),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              color: Colors.teal,
+              onRefresh: fetchLogs,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    summaryCard(),
+                    const SizedBox(height: 18),
+                    rangeSelector(),
+                    const SizedBox(height: 18),
+                    chartCard(),
+                    const SizedBox(height: 18),
+
+                    Row(
+                      children: [
+                        statBox(
+                          icon: Icons.check_circle,
+                          title: "Zamanında",
+                          value: onTimeCount.toString(),
+                          color: Colors.green,
+                        ),
+                        const SizedBox(width: 12),
+                        statBox(
+                          icon: Icons.schedule,
+                          title: "Geç",
+                          value: lateCount.toString(),
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 12),
+                        statBox(
+                          icon: Icons.list_alt,
+                          title: "Toplam",
+                          value: totalTaken.toString(),
+                          color: Colors.teal,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    Row(
+                      children: [
+                        Container(
+                          width: 5,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: Colors.teal,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "En Güncel 10 Kayıt",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+                    logsList(),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+}

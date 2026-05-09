@@ -122,19 +122,40 @@ class _ReminderListPageState extends State<ReminderListPage> {
     });
   }
 
-  DateTime currentScheduledDateTime(dynamic r) {
-    final now = DateTime.now();
-    final hour = r["hour"] ?? 0;
-    final minute = r["minute"] ?? 0;
+DateTime currentScheduledDateTime(dynamic r) {
+  final now = DateTime.now();
+  final hour = r["hour"] ?? 0;
+  final minute = r["minute"] ?? 0;
+  final frequency = r["frequencyType"];
 
-    return DateTime(
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
-    );
+  var scheduled = DateTime(
+    now.year,
+    now.month,
+    now.day,
+    hour,
+    minute,
+  );
+
+  if (frequency == "Daily") {
+    return scheduled;
   }
+
+  if (frequency == "Weekly") {
+    return scheduled;
+  }
+
+  if (frequency == "Once") {
+    return scheduled;
+  }
+
+  return scheduled;
+}
+bool isAvailableToTake(dynamic r) {
+  final now = DateTime.now();
+  final scheduled = currentScheduledDateTime(r);
+
+  return now.isAfter(scheduled) || now.isAtSameMomentAs(scheduled);
+}
 
   Future<void> markAsTaken(dynamic r) async {
     final medicationName = r["medicationName"] ?? "İlaç";
@@ -285,6 +306,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
     final minute = r["minute"] ?? 0;
     final color = freqColor(frequency);
     final isTaken = isTakenForCurrentPeriod(r);
+    final canTake = isAvailableToTake(r);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -410,27 +432,43 @@ class _ReminderListPageState extends State<ReminderListPage> {
 
           Column(
             children: [
-              ElevatedButton.icon(
-                onPressed: isTaken ? null : () => markAsTaken(r),
-                icon: Icon(
-                  isTaken ? Icons.check_circle : Icons.check,
-                  size: 18,
-                ),
-                label: Text(isTaken ? "Alındı" : "Aldım"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isTaken ? Colors.grey : Colors.green,
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  disabledForegroundColor: Colors.white,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
+             ElevatedButton.icon(
+  onPressed: isTaken || !canTake ? null : () => markAsTaken(r),
+  icon: Icon(
+    isTaken
+        ? Icons.check_circle
+        : canTake
+            ? Icons.check
+            : Icons.schedule,
+    size: 18,
+  ),
+  label: Text(
+    isTaken
+        ? "Alındı"
+        : canTake
+            ? "Aldım"
+            : "Planlandı",
+  ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: isTaken
+        ? Colors.grey
+        : canTake
+            ? Colors.green
+            : Colors.blueGrey,
+    disabledBackgroundColor: isTaken
+        ? Colors.grey.shade300
+        : Colors.blueGrey.shade200,
+    disabledForegroundColor: Colors.white,
+    foregroundColor: Colors.white,
+    padding: const EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 8,
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+  ),
+),
               const SizedBox(height: 8),
               IconButton(
                 onPressed: () => confirmDelete(r),
