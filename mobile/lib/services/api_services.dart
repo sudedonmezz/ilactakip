@@ -214,4 +214,37 @@ static Future<void> deleteReminder(int id) async {
     throw "Hatırlatma silinemedi";
   }
 }
+
+static Future<void> markMedicationAsTaken({
+  required int medicationId,
+  required DateTime scheduledDateTime,
+  String? note,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/medicationlogs/taken'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "medicationId": medicationId,
+      "scheduledDateTime": scheduledDateTime.toIso8601String(),
+      "note": note,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    final data = jsonDecode(response.body);
+    throw Exception(data["message"] ?? "İlaç alındı olarak işaretlenemedi");
+  }
+}
+
+static Future<List<dynamic>> getMedicationLogs(int userId) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/medicationlogs/user/$userId'),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  }
+
+  throw Exception("İlaç geçmişi alınamadı");
+}
 }

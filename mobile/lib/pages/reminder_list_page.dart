@@ -14,6 +14,7 @@ class ReminderListPage extends StatefulWidget {
 
 class _ReminderListPageState extends State<ReminderListPage> {
   List reminders = [];
+  List logs = [];
   bool isLoading = true;
 
   @override
@@ -25,11 +26,13 @@ class _ReminderListPageState extends State<ReminderListPage> {
   Future<void> fetchReminders() async {
     try {
       final data = await ApiService.getReminders(widget.userId);
+      final logData = await ApiService.getMedicationLogs(widget.userId);
 
       if (!mounted) return;
 
       setState(() {
         reminders = data;
+        logs = logData;
         isLoading = false;
       });
     } catch (e) {
@@ -72,6 +75,96 @@ class _ReminderListPageState extends State<ReminderListPage> {
     if (f == "Weekly") return Colors.deepPurple;
     if (f == "Once") return Colors.orange;
     return Colors.teal;
+  }
+
+  bool isTakenForCurrentPeriod(dynamic r) {
+    final medicationId = r["medicationId"];
+    final frequency = r["frequencyType"];
+    final hour = r["hour"] ?? 0;
+    final minute = r["minute"] ?? 0;
+
+    final now = DateTime.now();
+
+    return logs.any((log) {
+      final logMedicationId = log["medicationId"];
+      final status = log["status"];
+
+      if (logMedicationId != medicationId || status != "Taken") {
+        return false;
+      }
+
+      final scheduledText = log["scheduledDateTime"];
+      if (scheduledText == null) return false;
+
+      final scheduled = DateTime.parse(scheduledText);
+
+      if (frequency == "Once") {
+        return scheduled.hour == hour && scheduled.minute == minute;
+      }
+
+      if (frequency == "Daily") {
+        return scheduled.year == now.year &&
+            scheduled.month == now.month &&
+            scheduled.day == now.day &&
+            scheduled.hour == hour &&
+            scheduled.minute == minute;
+      }
+
+      if (frequency == "Weekly") {
+        final difference = now.difference(scheduled).inDays;
+
+        return difference < 7 &&
+            scheduled.hour == hour &&
+            scheduled.minute == minute;
+      }
+
+      return false;
+    });
+  }
+
+  DateTime currentScheduledDateTime(dynamic r) {
+    final now = DateTime.now();
+    final hour = r["hour"] ?? 0;
+    final minute = r["minute"] ?? 0;
+
+    return DateTime(
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+  }
+
+  Future<void> markAsTaken(dynamic r) async {
+    final medicationName = r["medicationName"] ?? "İlaç";
+
+    try {
+      await ApiService.markMedicationAsTaken(
+        medicationId: r["medicationId"],
+        scheduledDateTime: currentScheduledDateTime(r),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("$medicationName alındı olarak işaretlendi"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      await fetchReminders();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst("Exception: ", "")),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> deleteReminder(dynamic r) async {
@@ -190,8 +283,8 @@ class _ReminderListPageState extends State<ReminderListPage> {
     final frequency = r["frequencyType"] ?? "";
     final hour = r["hour"] ?? 0;
     final minute = r["minute"] ?? 0;
-
     final color = freqColor(frequency);
+    final isTaken = isTakenForCurrentPeriod(r);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -237,27 +330,43 @@ class _ReminderListPageState extends State<ReminderListPage> {
                   ),
                 ),
                 const SizedBox(height: 7),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 17,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      formatTime(hour, minute),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 9,
-                        vertical: 4,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 16,
+                            color: Colors.grey.shade700,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            formatTime(hour, minute),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
                         color: color.withOpacity(0.12),
@@ -272,17 +381,64 @@ class _ReminderListPageState extends State<ReminderListPage> {
                         ),
                       ),
                     ),
+                    if (isTaken)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          "Alındı",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],
             ),
           ),
 
-          IconButton(
-            onPressed: () => confirmDelete(r),
-            icon: const Icon(Icons.delete_outline),
-            color: Colors.red,
-            tooltip: "Sil",
+          const SizedBox(width: 8),
+
+          Column(
+            children: [
+              ElevatedButton.icon(
+                onPressed: isTaken ? null : () => markAsTaken(r),
+                icon: Icon(
+                  isTaken ? Icons.check_circle : Icons.check,
+                  size: 18,
+                ),
+                label: Text(isTaken ? "Alındı" : "Aldım"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isTaken ? Colors.grey : Colors.green,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  disabledForegroundColor: Colors.white,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              IconButton(
+                onPressed: () => confirmDelete(r),
+                icon: const Icon(Icons.delete_outline),
+                color: Colors.red,
+                tooltip: "Sil",
+              ),
+            ],
           ),
         ],
       ),
