@@ -24,6 +24,7 @@ public class MedicationsController : ControllerBase
 
         return Ok(medications);
     }
+    
 
    [HttpPost]
 public async Task<IActionResult> CreateMedication([FromBody] CreateMedicationRequest request)

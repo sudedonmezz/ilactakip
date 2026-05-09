@@ -21,32 +21,17 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
- void kayitOl() async {
-  String adSoyad = adSoyadController.text.trim();
-  String email = emailController.text.trim();
-  String sifre = sifreController.text.trim();
-
-  if (adSoyad.isEmpty || email.isEmpty || sifre.isEmpty) {
-    showDialog(
-      context: context,
-      builder: (context) => const AlertDialog(
-        title: Text("Hata"),
-        content: Text("Lütfen tüm alanları doldurun"),
-      ),
-    );
-    return;
-  }
-
+void kayitOl() async {
   try {
     await ApiService.registerUser(
-      fullName: adSoyad,
-      email: email,
-      password: sifre,
+      fullName: adSoyadController.text.trim(),
+      email: emailController.text.trim(),
+      password: sifreController.text.trim(),
     );
 
     if (!mounted) return;
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Başarılı"),
@@ -54,30 +39,38 @@ class _RegisterPageState extends State<RegisterPage> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // popup kapanır
-              Navigator.pop(context); // login'e döner
+              Navigator.pop(context);
             },
             child: const Text("Tamam"),
           ),
         ],
       ),
     );
+
+    if (!mounted) return;
+    Navigator.pop(context);
   } catch (e) {
-  String message = e.toString();
+    if (!mounted) return;
 
-  // "Exception: " kısmını kaldır
-  if (message.startsWith("Exception: ")) {
-    message = message.replaceFirst("Exception: ", "");
+    var message = e.toString();
+    if (message.startsWith("Exception: ")) {
+      message = message.replaceFirst("Exception: ", "");
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Hata"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Tamam"),
+          ),
+        ],
+      ),
+    );
   }
-
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text("Hata"),
-      content: Text(message),
-    ),
-  );
-}
 }
 
   @override

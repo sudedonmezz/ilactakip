@@ -4,6 +4,7 @@ import 'profile_page.dart';
 import '../services/api_services.dart';
 import 'medication_list_page.dart';
 import 'add_medication_page.dart';
+import 'reminder_list_page.dart';
 
 class HomePage extends StatefulWidget {
   final int userId;
@@ -15,12 +16,10 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-
 class _HomePageState extends State<HomePage> {
   String fullname = "x";
   int medicationCount = 0;
 
-  @override
   @override
 void initState() {
   super.initState();
@@ -179,7 +178,7 @@ child: Row(
                   child: _buildMiniInfoCard(
                     icon: Icons.notifications_active,
                     title: "Hatırlatma",
-                    value: "2",
+                    value: "0",
                   ),
                 ),
               ],
@@ -224,11 +223,18 @@ _buildMenuCard(
               onTap: () {},
             ),
             const SizedBox(height: 14),
-            _buildMenuCard(
+           _buildMenuCard(
               icon: Icons.notifications_none,
               title: "Hatırlatmalar",
               subtitle: "İlaç saatlerinizi yönetin",
-              onTap: () {},
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReminderListPage(userId: widget.userId),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 14),
            _buildMenuCard(

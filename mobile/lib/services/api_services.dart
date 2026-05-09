@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:5182/api';
+  static const String baseUrl = 'http://172.20.10.3:5142/api';
 
 static Future<void> registerUser({
   required String fullName,
@@ -165,6 +165,53 @@ static Future<void> deleteMedication(int medicationId) async {
 
   if (response.statusCode != 200) {
     throw "İlaç silinemedi";
+  }
+}
+
+static Future<List<dynamic>> getReminders(int userId) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/reminders/user/$userId'),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  }
+
+  throw "Hatırlatmalar alınamadı\nStatus: ${response.statusCode}\nBody: ${response.body}";
+}
+
+static Future<void> addReminder({
+  required int medicationId,
+  required int hour,
+  required int minute,
+  required String frequencyType,
+  required String startDate,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/reminders'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "medicationId": medicationId,
+      "hour": hour,
+      "minute": minute,
+      "frequencyType": frequencyType,
+      "startDate": startDate,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    final data = jsonDecode(response.body);
+    throw data["message"] ?? "Hatırlatma eklenemedi";
+  }
+}
+
+static Future<void> deleteReminder(int id) async {
+  final response = await http.delete(
+    Uri.parse('$baseUrl/reminders/$id'),
+  );
+
+  if (response.statusCode != 200) {
+    throw "Hatırlatma silinemedi";
   }
 }
 }
