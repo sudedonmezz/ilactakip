@@ -14,7 +14,9 @@ class MedicationLogStatsPage extends StatefulWidget {
 class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
   List logs = [];
   bool isLoading = true;
+
   String selectedRange = "Daily";
+  DateTime selectedDate = DateTime.now();
 
   final int onTimeToleranceMinutes = 30;
 
@@ -68,54 +70,88 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
   DateTime parseDate(dynamic value) {
     return DateTime.parse(value.toString());
   }
-bool isOnTime(dynamic log) {
-  final scheduled = parseDate(log["scheduledDateTime"]);
-  final takenRaw = log["takenDateTime"];
 
-  if (takenRaw == null) return false;
+  bool isOnTime(dynamic log) {
+    final scheduled = parseDate(log["scheduledDateTime"]);
+    final takenRaw = log["takenDateTime"];
 
-  final taken = parseDate(takenRaw);
+    if (takenRaw == null) return false;
 
-  final earliest = scheduled.subtract(
-    Duration(minutes: onTimeToleranceMinutes),
-  );
+    final taken = parseDate(takenRaw);
 
-  final latest = scheduled.add(
-    Duration(minutes: onTimeToleranceMinutes),
-  );
+    final earliest = scheduled.subtract(
+      Duration(minutes: onTimeToleranceMinutes),
+    );
 
-  return (taken.isAfter(earliest) || taken.isAtSameMomentAs(earliest)) &&
-      (taken.isBefore(latest) || taken.isAtSameMomentAs(latest));
-}
+    final latest = scheduled.add(Duration(minutes: onTimeToleranceMinutes));
+
+    return (taken.isAfter(earliest) || taken.isAtSameMomentAs(earliest)) &&
+        (taken.isBefore(latest) || taken.isAtSameMomentAs(latest));
+  }
 
   DateTime rangeStartDate() {
-    final now = DateTime.now();
-
     if (selectedRange == "Daily") {
-      return DateTime(now.year, now.month, now.day);
+      return DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
     }
 
     if (selectedRange == "Weekly") {
-      return now.subtract(const Duration(days: 6));
+      return selectedDate.subtract(const Duration(days: 6));
     }
 
     if (selectedRange == "Monthly") {
-      return DateTime(now.year, now.month - 1, now.day);
+      return DateTime(
+        selectedDate.year,
+        selectedDate.month - 1,
+        selectedDate.day,
+      );
     }
 
     if (selectedRange == "SixMonths") {
-      return DateTime(now.year, now.month - 6, now.day);
+      return DateTime(
+        selectedDate.year,
+        selectedDate.month - 6,
+        selectedDate.day,
+      );
     }
 
-    return DateTime(now.year - 1, now.month, now.day);
+    return DateTime(
+      selectedDate.year - 1,
+      selectedDate.month,
+      selectedDate.day,
+    );
+  }
+
+  DateTime rangeEndDate() {
+    if (selectedRange == "Daily") {
+      return DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        23,
+        59,
+        59,
+      );
+    }
+
+    return DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      23,
+      59,
+      59,
+    );
   }
 
   List get filteredLogs {
     final start = rangeStartDate();
+    final end = rangeEndDate();
 
     return logs.where((log) {
       final scheduled = parseDate(log["scheduledDateTime"]);
-      return scheduled.isAfter(start) || scheduled.isAtSameMomentAs(start);
+
+      return (scheduled.isAfter(start) || scheduled.isAtSameMomentAs(start)) &&
+          (scheduled.isBefore(end) || scheduled.isAtSameMomentAs(end));
     }).toList();
   }
 
@@ -134,8 +170,81 @@ bool isOnTime(dynamic log) {
     return (onTimeCount / filteredLogs.length) * 100;
   }
 
-  List<Map<String, dynamic>> chartData() {
+  void previousPeriod() {
+    setState(() {
+      if (selectedRange == "Daily") {
+        selectedDate = selectedDate.subtract(const Duration(days: 1));
+      } else if (selectedRange == "Weekly") {
+        selectedDate = selectedDate.subtract(const Duration(days: 7));
+      } else if (selectedRange == "Monthly") {
+        selectedDate = DateTime(
+          selectedDate.year,
+          selectedDate.month - 1,
+          selectedDate.day,
+        );
+      } else if (selectedRange == "SixMonths") {
+        selectedDate = DateTime(
+          selectedDate.year,
+          selectedDate.month - 6,
+          selectedDate.day,
+        );
+      } else {
+        selectedDate = DateTime(
+          selectedDate.year - 1,
+          selectedDate.month,
+          selectedDate.day,
+        );
+      }
+    });
+  }
+
+  void nextPeriod() {
     final now = DateTime.now();
+
+    setState(() {
+      if (selectedRange == "Daily") {
+        selectedDate = selectedDate.add(const Duration(days: 1));
+      } else if (selectedRange == "Weekly") {
+        selectedDate = selectedDate.add(const Duration(days: 7));
+      } else if (selectedRange == "Monthly") {
+        selectedDate = DateTime(
+          selectedDate.year,
+          selectedDate.month + 1,
+          selectedDate.day,
+        );
+      } else if (selectedRange == "SixMonths") {
+        selectedDate = DateTime(
+          selectedDate.year,
+          selectedDate.month + 6,
+          selectedDate.day,
+        );
+      } else {
+        selectedDate = DateTime(
+          selectedDate.year + 1,
+          selectedDate.month,
+          selectedDate.day,
+        );
+      }
+
+      if (selectedDate.isAfter(now)) {
+        selectedDate = now;
+      }
+    });
+  }
+
+  String periodTitle() {
+    final start = rangeStartDate();
+    final end = rangeEndDate();
+
+    if (selectedRange == "Daily") {
+      return formatDate(start);
+    }
+
+    return "${formatDate(start)} - ${formatDate(end)}";
+  }
+
+  List<Map<String, dynamic>> chartData() {
+    final now = selectedDate;
 
     if (selectedRange == "Daily") {
       return List.generate(24, (index) {
@@ -148,10 +257,7 @@ bool isOnTime(dynamic log) {
         final onTime = hourLogs.where((log) => isOnTime(log)).length;
         final rate = total == 0 ? 0.0 : (onTime / total) * 100;
 
-        return {
-          "label": index.toString(),
-          "rate": rate,
-        };
+        return {"label": index.toString().padLeft(2, "0"), "rate": rate};
       });
     }
 
@@ -170,10 +276,7 @@ bool isOnTime(dynamic log) {
         final onTime = dayLogs.where((log) => isOnTime(log)).length;
         final rate = total == 0 ? 0.0 : (onTime / total) * 100;
 
-        return {
-          "label": "${date.day}/${date.month}",
-          "rate": rate,
-        };
+        return {"label": "${date.day}/${date.month}", "rate": rate};
       });
     }
 
@@ -184,17 +287,16 @@ bool isOnTime(dynamic log) {
 
         final weekLogs = filteredLogs.where((log) {
           final scheduled = parseDate(log["scheduledDateTime"]);
-          return scheduled.isAfter(start) && scheduled.isBefore(end);
+          return (scheduled.isAfter(start) ||
+                  scheduled.isAtSameMomentAs(start)) &&
+              scheduled.isBefore(end);
         }).toList();
 
         final total = weekLogs.length;
         final onTime = weekLogs.where((log) => isOnTime(log)).length;
         final rate = total == 0 ? 0.0 : (onTime / total) * 100;
 
-        return {
-          "label": "${index + 1}. Hafta",
-          "rate": rate,
-        };
+        return {"label": "${index + 1}. H", "rate": rate};
       });
     }
 
@@ -251,12 +353,40 @@ bool isOnTime(dynamic log) {
               onSelected: (_) {
                 setState(() {
                   selectedRange = range;
+                  selectedDate = DateTime.now();
                 });
               },
             ),
           );
         }).toList(),
       ),
+    );
+  }
+
+  Widget periodNavigator() {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: previousPeriod,
+          icon: const Icon(Icons.chevron_left),
+          color: Colors.teal,
+        ),
+        Expanded(
+          child: Text(
+            periodTitle(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: nextPeriod,
+          icon: const Icon(Icons.chevron_right),
+          color: Colors.teal,
+        ),
+      ],
     );
   }
 
@@ -291,76 +421,103 @@ bool isOnTime(dynamic log) {
           const SizedBox(height: 6),
           Text(
             "Seçilen dönemde ilaçları zamanında alma oranınız",
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 220,
-            child: BarChart(
-              BarChartData(
-                maxY: 100,
-                minY: 0,
-                gridData: FlGridData(show: true),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 36,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          "${value.toInt()}%",
-                          style: const TextStyle(fontSize: 10),
-                        );
-                      },
+          const SizedBox(height: 14),
+          periodNavigator(),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onHorizontalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0;
+
+              if (velocity > 0) {
+                previousPeriod();
+              } else if (velocity < 0) {
+                nextPeriod();
+              }
+            },
+            child: SizedBox(
+              height: 220,
+              child: BarChart(
+                BarChartData(
+                  maxY: 100,
+                  minY: 0,
+                  gridData: FlGridData(show: true),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
                     ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 34,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-
-                        if (index < 0 || index >= data.length) {
-                          return const SizedBox.shrink();
-                        }
-
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            data[index]["label"],
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 36,
+                        getTitlesWidget: (value, meta) {
+                          return Text(
+                            "${value.toInt()}%",
                             style: const TextStyle(fontSize: 10),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 34,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+
+                          if (index < 0 || index >= data.length) {
+                            return const SizedBox.shrink();
+                          }
+
+                          if (selectedRange == "Daily") {
+                            if (![0, 6, 12, 18, 23].contains(index)) {
+                              return const SizedBox.shrink();
+                            }
+
+                            final label = index == 23
+                                ? "24"
+                                : index.toString().padLeft(2, "0");
+
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                label,
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            );
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              data[index]["label"],
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-                barGroups: List.generate(data.length, (index) {
-                  final rate = data[index]["rate"] as double;
+                  barGroups: List.generate(data.length, (index) {
+                    final rate = data[index]["rate"] as double;
 
-                  return BarChartGroupData(
-                    x: index,
-                    barRods: [
-                      BarChartRodData(
-                        toY: rate,
-                        width: selectedRange == "Daily" ? 8 : 16,
-                        color: Colors.teal,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ],
-                  );
-                }),
+                    return BarChartGroupData(
+                      x: index,
+                      barRods: [
+                        BarChartRodData(
+                          toY: rate,
+                          width: selectedRange == "Daily" ? 8 : 16,
+                          color: Colors.teal,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
               ),
             ),
           ),
@@ -397,11 +554,7 @@ bool isOnTime(dynamic log) {
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.analytics,
-              color: Colors.white,
-              size: 34,
-            ),
+            child: const Icon(Icons.analytics, color: Colors.white, size: 34),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -410,10 +563,7 @@ bool isOnTime(dynamic log) {
               children: [
                 const Text(
                   "İlaç Takip Analizi",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -427,10 +577,7 @@ bool isOnTime(dynamic log) {
                 const SizedBox(height: 5),
                 Text(
                   "$totalTaken kayıt incelendi",
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
             ),
@@ -476,10 +623,7 @@ bool isOnTime(dynamic log) {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.black54, fontSize: 12),
             ),
           ],
         ),
@@ -491,12 +635,12 @@ bool isOnTime(dynamic log) {
     final sorted = [...filteredLogs];
 
     sorted.sort((a, b) {
-  final aDate = parseDate(a["scheduledDateTime"]);
-  final bDate = parseDate(b["scheduledDateTime"]);
-  return bDate.compareTo(aDate); 
-});
+      final aDate = parseDate(a["scheduledDateTime"]);
+      final bDate = parseDate(b["scheduledDateTime"]);
+      return bDate.compareTo(aDate);
+    });
 
-final visibleLogs = sorted.take(10).toList();
+    final visibleLogs = sorted.take(10).toList();
 
     if (sorted.isEmpty) {
       return Container(
@@ -595,6 +739,10 @@ final visibleLogs = sorted.take(10).toList();
     );
   }
 
+  String formatDate(DateTime date) {
+    return "${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}";
+  }
+
   String formatDateTime(DateTime date) {
     return "${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year} "
         "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
@@ -626,7 +774,6 @@ final visibleLogs = sorted.take(10).toList();
                     const SizedBox(height: 18),
                     chartCard(),
                     const SizedBox(height: 18),
-
                     Row(
                       children: [
                         statBox(
@@ -651,9 +798,7 @@ final visibleLogs = sorted.take(10).toList();
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 22),
-
                     Row(
                       children: [
                         Container(
@@ -675,7 +820,6 @@ final visibleLogs = sorted.take(10).toList();
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 12),
                     logsList(),
                   ],
