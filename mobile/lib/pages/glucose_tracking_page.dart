@@ -154,16 +154,18 @@ class _GlucoseTrackingPageState extends State<GlucoseTrackingPage> {
   }
 
   Color glucoseColor(double value) {
-    if (value < 70) return Colors.orange;
-    if (value > 180) return Colors.red;
-    return Colors.teal;
-  }
+  if (value <= 75) return Colors.red;
+  if (value < 90) return Colors.orange;
+  if (value >= 190) return Colors.red;
+  return Colors.teal;
+}
 
-  String glucoseStatus(double value) {
-    if (value < 70) return "Düşük";
-    if (value > 180) return "Yüksek";
-    return "Normal";
-  }
+String glucoseStatus(double value) {
+  if (value <= 75) return "Düşük";
+  if (value < 90) return "Düşük sınırı";
+  if (value >= 190) return "Yüksek";
+  return "Normal";
+}
 
   Widget headerCard() {
     final latest = latestValue;

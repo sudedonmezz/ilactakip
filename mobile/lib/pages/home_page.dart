@@ -7,6 +7,8 @@ import 'add_medication_page.dart';
 import 'reminder_list_page.dart';
 import 'medication_log_stats_page.dart';
 import 'glucose_tracking_page.dart';
+import 'treatment_history_page.dart';
+
 
 class HomePage extends StatefulWidget {
   final int userId;
@@ -510,8 +512,40 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 26),
 
-              sectionTitle("Sağlık Takibi"),
-              healthTrackingCard(),
+             sectionTitle("Sağlık Takibi"),
+
+quickActionCard(
+  icon: Icons.bloodtype,
+  title: "Kan Şekeri Takibi",
+  subtitle: "Kan şekeri ölçümlerinizi kaydedin",
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            GlucoseTrackingPage(userId: widget.userId),
+      ),
+    );
+  },
+),
+
+const SizedBox(height: 14),
+
+quickActionCard(
+  icon: Icons.healing,
+  title: "Tedavi Geçmişi",
+  subtitle:
+      "İnsülin, ilaç, besin ve egzersiz kayıtlarını görüntüleyin",
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            TreatmentHistoryPage(userId: widget.userId),
+      ),
+    );
+  },
+),
             ],
           ),
         ),

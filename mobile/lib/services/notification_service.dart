@@ -169,4 +169,21 @@ static Future<void> scheduleNotificationAt({
 
     return scheduledDate;
   }
+
+
+  static Future<void> scheduleGlucoseWarningNotification({
+  required int id,
+  required String title,
+  required String body,
+  required DateTime dateTime,
+}) async {
+  await _notifications.zonedSchedule(
+    id,
+    title,
+    body,
+    tz.TZDateTime.from(dateTime, tz.local),
+    _notificationDetails(),
+    androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+  );
+}
 }

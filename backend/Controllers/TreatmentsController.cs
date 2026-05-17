@@ -61,4 +61,6 @@ public class TreatmentsController : ControllerBase
 
         return Ok(new { message = "Tedavi kaydı silindi" });
     }
+
+    
 }

@@ -33,6 +33,38 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+
+        modelBuilder.Entity<Treatment>(entity =>
+{
+    entity.HasKey(e => e.Id).HasName("treatments_pkey");
+
+    entity.ToTable("treatments");
+
+    entity.Property(e => e.Id).HasColumnName("id");
+    entity.Property(e => e.Userid).HasColumnName("userid");
+
+    entity.Property(e => e.Treatmenttype)
+        .HasMaxLength(20)
+        .HasColumnName("treatmenttype");
+
+    entity.Property(e => e.Name)
+        .HasMaxLength(100)
+        .HasColumnName("name");
+
+    entity.Property(e => e.Dose)
+        .HasPrecision(6, 2)
+        .HasColumnName("dose");
+
+    entity.Property(e => e.Unit)
+        .HasMaxLength(20)
+        .HasColumnName("unit");
+
+    entity.Property(e => e.Takentime)
+        .HasColumnType("timestamp without time zone")
+        .HasColumnName("takentime");
+
+    entity.Property(e => e.Note).HasColumnName("note");
+});
         modelBuilder.Entity<Glucosemeasurement>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("glucosemeasurements_pkey");
