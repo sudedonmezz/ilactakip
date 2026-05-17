@@ -17,6 +17,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Glucosemeasurement> Glucosemeasurements { get; set; }
 
+    public DbSet<Treatment> Treatments { get; set; }
+
     public virtual DbSet<Medication> Medications { get; set; }
 
     public virtual DbSet<Medicationlog> Medicationlogs { get; set; }

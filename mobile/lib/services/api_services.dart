@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://172.20.10.3:5142/api';
+  static const String baseUrl = 'http://localhost:5142/api';
 
 static Future<void> registerUser({
   required String fullName,
@@ -246,5 +246,52 @@ static Future<List<dynamic>> getMedicationLogs(int userId) async {
   }
 
   throw Exception("İlaç geçmişi alınamadı");
+}
+
+static Future<List<dynamic>> getGlucoseMeasurements(int userId) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/glucosemeasurements/user/$userId'),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  }
+
+  throw Exception("Kan şekeri ölçümleri alınamadı");
+}
+
+static Future<void> addGlucoseMeasurement({
+  required int userId,
+  required double value,
+  required String measurementType,
+  required DateTime measurementTime,
+  String? note,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/glucosemeasurements'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "userId": userId,
+      "value": value,
+      "measurementType": measurementType,
+      "measurementTime": measurementTime.toIso8601String(),
+      "note": note,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    final data = jsonDecode(response.body);
+    throw Exception(data["message"] ?? "Kan şekeri ölçümü eklenemedi");
+  }
+}
+
+static Future<void> deleteGlucoseMeasurement(int id) async {
+  final response = await http.delete(
+    Uri.parse('$baseUrl/glucosemeasurements/$id'),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception("Kan şekeri ölçümü silinemedi");
+  }
 }
 }

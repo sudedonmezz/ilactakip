@@ -6,6 +6,7 @@ import 'medication_list_page.dart';
 import 'add_medication_page.dart';
 import 'reminder_list_page.dart';
 import 'medication_log_stats_page.dart';
+import 'glucose_tracking_page.dart';
 
 class HomePage extends StatefulWidget {
   final int userId;
@@ -341,75 +342,69 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget healthTrackingCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 14,
-            offset: Offset(0, 7),
+  return Material(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(22),
+    elevation: 3,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GlucoseTrackingPage(userId: widget.userId),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.monitor_heart_outlined,
-              color: Colors.orange,
-              size: 30,
-            ),
-          ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Kan Şekeri Takibi",
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  "Yakında aktif olacak",
-                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              "Yakında",
-              style: TextStyle(
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.monitor_heart_outlined,
                 color: Colors.orange,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+                size: 30,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Kan Şekeri Takibi",
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "Ölçümlerinizi kaydedin ve takip edin",
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.orange,
+              size: 18,
+            ),
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
