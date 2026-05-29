@@ -2,116 +2,98 @@ import 'package:flutter/material.dart';
 import '../services/api_services.dart';
 import '../services/notification_service.dart';
 
-class AddGlucoseMeasurementPage extends StatefulWidget {
+class AddBloodPressureMeasurementPage extends StatefulWidget {
   final int userId;
 
-  const AddGlucoseMeasurementPage({super.key, required this.userId});
+  const AddBloodPressureMeasurementPage({
+    super.key,
+    required this.userId,
+  });
 
   @override
-  State<AddGlucoseMeasurementPage> createState() =>
-      _AddGlucoseMeasurementPageState();
+  State<AddBloodPressureMeasurementPage> createState() =>
+      _AddBloodPressureMeasurementPageState();
 }
 
-class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
-  final TextEditingController valueController = TextEditingController();
+class _AddBloodPressureMeasurementPageState
+    extends State<AddBloodPressureMeasurementPage> {
+  final TextEditingController systolicController = TextEditingController();
+  final TextEditingController diastolicController = TextEditingController();
+  final TextEditingController pulseController = TextEditingController();
   final TextEditingController noteController = TextEditingController();
 
-  String measurementType = "Açlık";
   DateTime measurementTime = DateTime.now();
   bool isSaving = false;
 
   @override
   void dispose() {
-    valueController.dispose();
+    systolicController.dispose();
+    diastolicController.dispose();
+    pulseController.dispose();
     noteController.dispose();
     super.dispose();
   }
 
-  String glucoseStatus(double value) {
-    if (value < 80) return "Low";
-    if (value < 90) return "BorderlineLow";
-    if (value >= 190) return "High";
+  String bloodPressureStatus(int systolic, int diastolic) {
+    if (systolic < 90 || diastolic < 60) return "Low";
+    if (systolic >= 140 || diastolic >= 90) return "High";
     return "Normal";
   }
 
-  Future<void> handleGlucoseAlert(double value) async {
-  final status = glucoseStatus(value);
+  Future<void> handleBloodPressureAlert(int systolic, int diastolic) async {
+    final status = bloodPressureStatus(systolic, diastolic);
 
-  if (status == "Normal" || status == "BorderlineLow") {
-    return;
-  }
-
-  final reminderTime = DateTime.now().add(
-    const Duration(minutes: 30),
-  );
-
-  const notificationId = 900001;
-
-  await NotificationService.cancelNotification(notificationId);
-
-  if (status == "High") {
-    await NotificationService.scheduleGlucoseWarningNotification(
-      id: notificationId,
-      title: "Tekrar ölçüm yap",
-      body:
-          "Kan şekeriniz yüksek görünüyordu. Lütfen tekrar ölçüm yapın.",
-      dateTime: reminderTime,
-    );
-  } else if (status == "Low") {
-    await NotificationService.scheduleGlucoseWarningNotification(
-      id: notificationId,
-      title: "Tekrar ölçüm yap",
-      body:
-          "Kan şekeriniz düşük görünüyordu. Lütfen tekrar ölçüm yapın.",
-      dateTime: reminderTime,
-    );
-  }
-}
-
-  void showGlucoseResultMessage(double value) {
-    final status = glucoseStatus(value);
-
-    String title = "Ölçüm Kaydedildi";
-    String message = "Kan şekeri ölçümünüz kaydedildi.";
-
-    if (status == "High") {
-      title = "Yüksek Kan Şekeri";
-      message =
-          "Ölçümünüz yüksek görünüyor. Su içmeyi ihmal etmeyin, yoğun hareketten kaçının ve 30 dakika sonra tekrar ölçüm yapın.";
-    } else if (status == "Low") {
-      title = "Düşük Kan Şekeri"; 
-      message =
-          "Ölçümünüz düşük görünüyor. Hızlı şeker/karbonhidrat alın ve 30 dakika sonra tekrar ölçüm yapın.";
-    } else if (status == "BorderlineLow") {
-      title = "Düşük Sınırı";
-      message =
-          "Ölçümünüz düşük sınıra yakın. Kendinizi iyi hissetmiyorsanız tekrar ölçüm yapın.";
+    if (status == "Normal") {
+      await NotificationService.cancelNotification(900002);
+      return;
     }
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context, true);
-            },
-            child: const Text("Tamam"),
-          ),
-        ],
-      ),
+    final reminderTime = DateTime.now().add(
+      const Duration(minutes: 1),
     );
+
+    const notificationId = 900002;
+
+    await NotificationService.cancelNotification(notificationId);
+
+    if (status == "High") {
+      await NotificationService.scheduleGlucoseWarningNotification(
+        id: notificationId,
+        title: "Tansiyonunuzu tekrar ölçün",
+        body:
+            "Tansiyonunuz yüksek görünüyordu. Dinlenin ve tekrar ölçüm yapın.",
+        dateTime: reminderTime,
+      );
+    } else if (status == "Low") {
+      await NotificationService.scheduleGlucoseWarningNotification(
+        id: notificationId,
+        title: "Tansiyonunuzu tekrar ölçün",
+        body:
+            "Tansiyonunuz düşük görünüyordu. Sıvı alın ve tekrar ölçüm yapın.",
+        dateTime: reminderTime,
+      );
+    }
   }
 
   Future<void> saveMeasurement() async {
-    final value =
-        double.tryParse(valueController.text.trim().replaceAll(",", "."));
+    final systolic = int.tryParse(systolicController.text.trim());
+    final diastolic = int.tryParse(diastolicController.text.trim());
+    final pulse = pulseController.text.trim().isEmpty
+        ? null
+        : int.tryParse(pulseController.text.trim());
 
-    if (value == null || value <= 0) {
-      showMessage("Hata", "Geçerli bir kan şekeri değeri girin.");
+    if (systolic == null || systolic <= 0) {
+      showMessage("Hata", "Geçerli bir büyük tansiyon değeri girin.");
+      return;
+    }
+
+    if (diastolic == null || diastolic <= 0) {
+      showMessage("Hata", "Geçerli bir küçük tansiyon değeri girin.");
+      return;
+    }
+
+    if (pulseController.text.trim().isNotEmpty && pulse == null) {
+      showMessage("Hata", "Geçerli bir nabız değeri girin.");
       return;
     }
 
@@ -120,17 +102,18 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
     });
 
     try {
-      await ApiService.addGlucoseMeasurement(
+      await ApiService.addBloodPressureMeasurement(
         userId: widget.userId,
-        value: value,
-        measurementType: measurementType,
+        systolic: systolic,
+        diastolic: diastolic,
+        pulse: pulse,
         measurementTime: measurementTime,
         note: noteController.text.trim().isEmpty
             ? null
             : noteController.text.trim(),
       );
 
-      await handleGlucoseAlert(value);
+      await handleBloodPressureAlert(systolic, diastolic);
 
       if (!mounted) return;
 
@@ -138,7 +121,7 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
         isSaving = false;
       });
 
-      showGlucoseResultMessage(value);
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
 
@@ -252,7 +235,7 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
               shape: BoxShape.circle,
             ),
             child: const Icon(
-              Icons.bloodtype,
+              Icons.favorite,
               color: Colors.white,
               size: 34,
             ),
@@ -263,7 +246,7 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Kan Şekeri Ölçümü",
+                  "Tansiyon Ölçümü",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -272,7 +255,7 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  "Ölçüm değerini ve zamanını kaydedin",
+                  "Büyük, küçük tansiyon ve nabız değerlerinizi kaydedin",
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 13,
@@ -389,34 +372,35 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          sectionTitle("Ölçüm Bilgileri", Icons.monitor_heart),
+          sectionTitle("Ölçüm Bilgileri", Icons.favorite),
           TextField(
-            controller: valueController,
+            controller: systolicController,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.next,
             decoration: inputDecoration(
-              "Kan Şekeri Değeri (mg/dL)",
-              Icons.bloodtype,
+              "Büyük Tansiyon",
+              Icons.arrow_upward,
             ),
           ),
           const SizedBox(height: 14),
-          DropdownButtonFormField<String>(
-            value: measurementType,
-            decoration: inputDecoration("Ölçüm Tipi", Icons.category),
-            items: const [
-              DropdownMenuItem(value: "Açlık", child: Text("Açlık")),
-              DropdownMenuItem(value: "Tokluk", child: Text("Tokluk")),
-              DropdownMenuItem(
-                value: "Yatmadan Önce",
-                child: Text("Yatmadan Önce"),
-              ),
-              DropdownMenuItem(value: "Rastgele", child: Text("Rastgele")),
-            ],
-            onChanged: (value) {
-              setState(() {
-                measurementType = value!;
-              });
-            },
+          TextField(
+            controller: diastolicController,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.next,
+            decoration: inputDecoration(
+              "Küçük Tansiyon",
+              Icons.arrow_downward,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: pulseController,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.next,
+            decoration: inputDecoration(
+              "Nabız",
+              Icons.monitor_heart,
+            ),
           ),
           const SizedBox(height: 14),
           dateTimeSelector(),
@@ -424,7 +408,10 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
           TextField(
             controller: noteController,
             maxLines: 3,
-            decoration: inputDecoration("Not", Icons.note_alt_outlined),
+            decoration: inputDecoration(
+              "Not",
+              Icons.note_alt_outlined,
+            ),
           ),
         ],
       ),
@@ -469,7 +456,7 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFE8F5E9),
       appBar: AppBar(
-        title: const Text("Ölçüm Ekle"),
+        title: const Text("Tansiyon Ekle"),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         elevation: 0,

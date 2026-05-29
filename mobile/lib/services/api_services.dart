@@ -347,5 +347,54 @@ static Future<void> deleteTreatment(int id) async {
   }
 }
 
+static Future<List<dynamic>> getBloodPressureMeasurements(int userId) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/bloodpressuremeasurements/user/$userId'),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  }
+
+  throw Exception("Tansiyon ölçümleri alınamadı");
+}
+
+static Future<void> addBloodPressureMeasurement({
+  required int userId,
+  required int systolic,
+  required int diastolic,
+  int? pulse,
+  required DateTime measurementTime,
+  String? note,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/bloodpressuremeasurements'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "userid": userId,
+      "systolic": systolic,
+      "diastolic": diastolic,
+      "pulse": pulse,
+      "measurementtime": measurementTime.toIso8601String(),
+      "note": note,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    final data = jsonDecode(response.body);
+    throw Exception(data["message"] ?? "Tansiyon ölçümü eklenemedi");
+  }
+}
+
+static Future<void> deleteBloodPressureMeasurement(int id) async {
+  final response = await http.delete(
+    Uri.parse('$baseUrl/bloodpressuremeasurements/$id'),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception("Tansiyon ölçümü silinemedi");
+  }
+}
+
 
 }

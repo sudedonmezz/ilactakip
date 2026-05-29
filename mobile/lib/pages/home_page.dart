@@ -8,6 +8,7 @@ import 'reminder_list_page.dart';
 import 'medication_log_stats_page.dart';
 import 'glucose_tracking_page.dart';
 import 'treatment_history_page.dart';
+import 'blood_pressure_tracking_page.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -529,6 +530,8 @@ quickActionCard(
   },
 ),
 
+
+
 const SizedBox(height: 14),
 
 quickActionCard(
@@ -546,6 +549,24 @@ quickActionCard(
     );
   },
 ),
+
+const SizedBox(height: 14),
+
+quickActionCard(
+  icon: Icons.favorite,
+  title: "Tansiyon Takibi",
+  subtitle: "Tansiyon ve nabız ölçümlerinizi kaydedin",
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            BloodPressureTrackingPage(userId: widget.userId),
+      ),
+    );
+  },
+),
+
             ],
           ),
         ),

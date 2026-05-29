@@ -17,6 +17,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Glucosemeasurement> Glucosemeasurements { get; set; }
 
+    public virtual DbSet<BloodPressureMeasurement> BloodPressureMeasurements { get; set; }
+
     public DbSet<Treatment> Treatments { get; set; }
 
     public virtual DbSet<Medication> Medications { get; set; }
@@ -164,6 +166,31 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.Medicationid)
                 .HasConstraintName("fk_schedule_medication");
         });
+
+        modelBuilder.Entity<BloodPressureMeasurement>(entity =>
+{
+    entity.ToTable("bloodpressuremeasurements");
+
+    entity.Property(e => e.Id).HasColumnName("id");
+
+    entity.Property(e => e.Userid)
+        .HasColumnName("userid");
+
+    entity.Property(e => e.Systolic)
+        .HasColumnName("systolic");
+
+    entity.Property(e => e.Diastolic)
+        .HasColumnName("diastolic");
+
+    entity.Property(e => e.Pulse)
+        .HasColumnName("pulse");
+
+    entity.Property(e => e.Measurementtime)
+        .HasColumnName("measurementtime");
+
+    entity.Property(e => e.Note)
+        .HasColumnName("note");
+});
 
         modelBuilder.Entity<User>(entity =>
         {

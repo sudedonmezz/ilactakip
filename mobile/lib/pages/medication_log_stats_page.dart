@@ -106,6 +106,10 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
       );
     }
 
+    if (selectedRange == "Yearly") {
+  return DateTime(selectedDate.year, 1, 1);
+}
+
     if (selectedRange == "SixMonths") {
       return DateTime(
         selectedDate.year,
@@ -114,11 +118,7 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
       );
     }
 
-    return DateTime(
-      selectedDate.year - 1,
-      selectedDate.month,
-      selectedDate.day,
-    );
+    return DateTime(selectedDate.year, 1, 1);
   }
 
   DateTime rangeEndDate() {
@@ -132,6 +132,11 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
         59,
       );
     }
+
+     if (selectedRange == "Yearly") {
+    return DateTime(selectedDate.year, 12, 31, 23, 59, 59);
+  }
+
 
     return DateTime(
       selectedDate.year,
@@ -244,82 +249,130 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
   }
 
   List<Map<String, dynamic>> chartData() {
-    final now = selectedDate;
+  final now = selectedDate;
 
-    if (selectedRange == "Daily") {
-      return List.generate(24, (index) {
-        final hourLogs = filteredLogs.where((log) {
-          final scheduled = parseDate(log["scheduledDateTime"]);
-          return scheduled.hour == index;
-        }).toList();
+  const monthNames = [
+    "Oca",
+    "Şub",
+    "Mar",
+    "Nis",
+    "May",
+    "Haz",
+    "Tem",
+    "Ağu",
+    "Eyl",
+    "Eki",
+    "Kas",
+    "Ara",
+  ];
 
-        final total = hourLogs.length;
-        final onTime = hourLogs.where((log) => isOnTime(log)).length;
-        final rate = total == 0 ? 0.0 : (onTime / total) * 100;
-
-        return {"label": index.toString().padLeft(2, "0"), "rate": rate};
-      });
-    }
-
-    if (selectedRange == "Weekly") {
-      return List.generate(7, (index) {
-        final date = now.subtract(Duration(days: 6 - index));
-
-        final dayLogs = filteredLogs.where((log) {
-          final scheduled = parseDate(log["scheduledDateTime"]);
-          return scheduled.year == date.year &&
-              scheduled.month == date.month &&
-              scheduled.day == date.day;
-        }).toList();
-
-        final total = dayLogs.length;
-        final onTime = dayLogs.where((log) => isOnTime(log)).length;
-        final rate = total == 0 ? 0.0 : (onTime / total) * 100;
-
-        return {"label": "${date.day}/${date.month}", "rate": rate};
-      });
-    }
-
-    if (selectedRange == "Monthly") {
-      return List.generate(4, (index) {
-        final start = now.subtract(Duration(days: (4 - index) * 7));
-        final end = start.add(const Duration(days: 7));
-
-        final weekLogs = filteredLogs.where((log) {
-          final scheduled = parseDate(log["scheduledDateTime"]);
-          return (scheduled.isAfter(start) ||
-                  scheduled.isAtSameMomentAs(start)) &&
-              scheduled.isBefore(end);
-        }).toList();
-
-        final total = weekLogs.length;
-        final onTime = weekLogs.where((log) => isOnTime(log)).length;
-        final rate = total == 0 ? 0.0 : (onTime / total) * 100;
-
-        return {"label": "${index + 1}. H", "rate": rate};
-      });
-    }
-
-    final monthCount = selectedRange == "SixMonths" ? 6 : 12;
-
-    return List.generate(monthCount, (index) {
-      final date = DateTime(now.year, now.month - (monthCount - 1 - index), 1);
-
-      final monthLogs = filteredLogs.where((log) {
+  if (selectedRange == "Daily") {
+    return List.generate(24, (index) {
+      final hourLogs = filteredLogs.where((log) {
         final scheduled = parseDate(log["scheduledDateTime"]);
-        return scheduled.year == date.year && scheduled.month == date.month;
+        return scheduled.hour == index;
       }).toList();
 
-      final total = monthLogs.length;
-      final onTime = monthLogs.where((log) => isOnTime(log)).length;
+      final total = hourLogs.length;
+      final onTime = hourLogs.where((log) => isOnTime(log)).length;
       final rate = total == 0 ? 0.0 : (onTime / total) * 100;
 
       return {
-        "label": "${date.month}/${date.year.toString().substring(2)}",
+        "label": index.toString().padLeft(2, "0"),
         "rate": rate,
       };
     });
   }
+
+  if (selectedRange == "Weekly") {
+    return List.generate(7, (index) {
+      final date = now.subtract(Duration(days: 6 - index));
+
+      final dayLogs = filteredLogs.where((log) {
+        final scheduled = parseDate(log["scheduledDateTime"]);
+        return scheduled.year == date.year &&
+            scheduled.month == date.month &&
+            scheduled.day == date.day;
+      }).toList();
+
+      final total = dayLogs.length;
+      final onTime = dayLogs.where((log) => isOnTime(log)).length;
+      final rate = total == 0 ? 0.0 : (onTime / total) * 100;
+
+      return {
+        "label": "${date.day}/${date.month}",
+        "rate": rate,
+      };
+    });
+  }
+
+  if (selectedRange == "Monthly") {
+    return List.generate(4, (index) {
+      final start = now.subtract(Duration(days: (4 - index) * 7));
+      final end = start.add(const Duration(days: 7));
+
+      final weekLogs = filteredLogs.where((log) {
+        final scheduled = parseDate(log["scheduledDateTime"]);
+        return (scheduled.isAfter(start) ||
+                scheduled.isAtSameMomentAs(start)) &&
+            scheduled.isBefore(end);
+      }).toList();
+
+      final total = weekLogs.length;
+      final onTime = weekLogs.where((log) => isOnTime(log)).length;
+      final rate = total == 0 ? 0.0 : (onTime / total) * 100;
+
+      return {
+        "label": "${index + 1}. H",
+        "rate": rate,
+      };
+    });
+  }
+  if (selectedRange == "Yearly") {
+  return List.generate(12, (index) {
+    final month = index + 1;
+
+    final monthLogs = filteredLogs.where((log) {
+      final scheduled = parseDate(log["scheduledDateTime"]);
+      return scheduled.year == selectedDate.year &&
+          scheduled.month == month;
+    }).toList();
+
+    final total = monthLogs.length;
+    final onTime = monthLogs.where((log) => isOnTime(log)).length;
+    final rate = total == 0 ? 0.0 : (onTime / total) * 100;
+
+    return {
+      "label": monthNames[index],
+      "rate": rate,
+    };
+  });
+}
+
+  final monthCount = selectedRange == "SixMonths" ? 6 : 12;
+
+  return List.generate(monthCount, (index) {
+    final date = DateTime(
+      now.year,
+      now.month - (monthCount - 1 - index),
+      1,
+    );
+
+    final monthLogs = filteredLogs.where((log) {
+      final scheduled = parseDate(log["scheduledDateTime"]);
+      return scheduled.year == date.year && scheduled.month == date.month;
+    }).toList();
+
+    final total = monthLogs.length;
+    final onTime = monthLogs.where((log) => isOnTime(log)).length;
+    final rate = total == 0 ? 0.0 : (onTime / total) * 100;
+
+    return {
+      "label": monthNames[date.month - 1],
+      "rate": rate,
+    };
+  });
+}
 
   String rangeText(String value) {
     if (value == "Daily") return "Günlük";
@@ -510,7 +563,13 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
                       barRods: [
                         BarChartRodData(
                           toY: rate,
-                          width: selectedRange == "Daily" ? 8 : 16,
+                          width: selectedRange == "Daily"
+                          ? 8
+                          : selectedRange == "Yearly"
+                              ? 9
+                              : selectedRange == "SixMonths"
+                                  ? 13
+                                  : 16,
                           color: Colors.teal,
                           borderRadius: BorderRadius.circular(8),
                         ),
