@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "364205146103",
+    "project_id": "ilactakip-a5c2a",
+    "storage_bucket": "ilactakip-a5c2a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364205146103:android:0ec33a6acf53196079f8f2",
+        "android_client_info": {
+          "package_name": "com.example.ilac_takip"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLAotQREcxu_245oLOfzQZL6GEAwh3sSM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

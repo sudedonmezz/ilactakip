@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:google_sign_in/google_sign_in.dart';
 
 class ApiService {
   //static const String baseUrl = 'http://localhost:5142/api';
@@ -394,6 +395,41 @@ static Future<void> deleteBloodPressureMeasurement(int id) async {
   if (response.statusCode != 200) {
     throw Exception("Tansiyon ölçümü silinemedi");
   }
+}
+
+static Future<Map<String, dynamic>> googleLogin() async {
+  await GoogleSignIn.instance.initialize(
+    clientId:
+        "364205146103-206mismcq5lhrgfu3sl7qbsq2olasls4.apps.googleusercontent.com",
+  );
+
+  final GoogleSignInAccount account =
+      await GoogleSignIn.instance.authenticate();
+
+  final GoogleSignInAuthentication auth =
+      account.authentication;
+
+  final String? idToken = auth.idToken;
+
+  if (idToken == null) {
+    throw Exception("Google token alınamadı.");
+  }
+
+  final response = await http.post(
+    Uri.parse('$baseUrl/auth/google'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "idToken": idToken,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  }
+
+  throw Exception(
+    "Google ile giriş başarısız. ${response.body}",
+  );
 }
 
 

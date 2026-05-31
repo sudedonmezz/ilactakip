@@ -89,6 +89,59 @@ if (profileIncomplete) {
   }
 }
 
+void googleIleGirisYap() async {
+  try {
+    final user = await ApiService.googleLogin();
+
+    if (!mounted) return;
+
+    final bool profileIncomplete =
+        user["age"] == null ||
+        user["gender"] == null ||
+        user["weight"] == null ||
+        user["height"] == null;
+
+    if (profileIncomplete) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProfileCompletePage(user: user),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(
+            userId: user["id"] ?? user["Id"],
+          ),
+        ),
+      );
+    }
+  } catch (e) {
+    if (!mounted) return;
+
+    var message = e.toString();
+    if (message.startsWith("Exception: ")) {
+      message = message.replaceFirst("Exception: ", "");
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Google Giriş Başarısız"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Tamam"),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
   void registerSayfasinaGit() {
     Navigator.push(
       context,
@@ -218,6 +271,27 @@ if (profileIncomplete) {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+
+OutlinedButton.icon(
+  onPressed: googleIleGirisYap,
+  icon: const Icon(Icons.g_mobiledata, color: Colors.teal, size: 30),
+  label: const Text(
+    "Google ile devam et",
+    style: TextStyle(
+      color: Colors.teal,
+      fontWeight: FontWeight.bold,
+      fontSize: 15,
+    ),
+  ),
+  style: OutlinedButton.styleFrom(
+    minimumSize: const Size(double.infinity, 52),
+    side: const BorderSide(color: Colors.teal),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+    ),
+  ),
+),
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: registerSayfasinaGit,
