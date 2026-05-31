@@ -169,6 +169,9 @@ static Future<void> scheduleNotificationAt({
 
     return scheduledDate;
   }
+static Future<void> cancelAllNotifications() async {
+  await _notifications.cancelAll();
+}
 
 
   static Future<void> scheduleGlucoseWarningNotification({
@@ -186,4 +189,6 @@ static Future<void> scheduleNotificationAt({
     androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
   );
 }
+
+
 }
