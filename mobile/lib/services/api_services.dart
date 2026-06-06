@@ -397,6 +397,48 @@ static Future<void> deleteBloodPressureMeasurement(int id) async {
   }
 }
 
+static Future<void> sendVerificationCode({
+  required String fullName,
+  required String email,
+  required String password,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/emailverification/send-code'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "fullname": fullName,
+      "email": email,
+      "password": password,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    final data = jsonDecode(response.body);
+    throw Exception(data["message"] ?? "Doğrulama kodu gönderilemedi");
+  }
+}
+
+static Future<Map<String, dynamic>> verifyEmailCode({
+  required String email,
+  required String code,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/emailverification/verify-code'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "email": email,
+      "code": code,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  }
+
+  final data = jsonDecode(response.body);
+  throw Exception(data["message"] ?? "Doğrulama başarısız");
+}
+
 static Future<Map<String, dynamic>> googleLogin() async {
   await GoogleSignIn.instance.initialize(
     clientId:

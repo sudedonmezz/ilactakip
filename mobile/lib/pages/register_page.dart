@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
+import 'email_verification_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -22,33 +23,38 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
 void kayitOl() async {
-  try {
-    await ApiService.registerUser(
-      fullName: adSoyadController.text.trim(),
-      email: emailController.text.trim(),
-      password: sifreController.text.trim(),
-    );
+  final fullName = adSoyadController.text.trim();
+  final email = emailController.text.trim();
+  final password = sifreController.text.trim();
 
-    if (!mounted) return;
-
-    await showDialog(
+  if (fullName.isEmpty || email.isEmpty || password.isEmpty) {
+    showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Başarılı"),
-        content: const Text("Kayıt oluşturuldu"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text("Tamam"),
-          ),
-        ],
+      builder: (context) => const AlertDialog(
+        title: Text("Hata"),
+        content: Text("Lütfen tüm alanları doldurun."),
       ),
     );
+    return;
+  }
+
+  try {
+    await ApiService.sendVerificationCode(
+      fullName: fullName,
+      email: email,
+      password: password,
+    );
 
     if (!mounted) return;
-    Navigator.pop(context);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EmailVerificationPage(
+          email: email,
+        ),
+      ),
+    );
   } catch (e) {
     if (!mounted) return;
 

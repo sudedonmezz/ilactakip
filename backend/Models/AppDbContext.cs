@@ -21,6 +21,8 @@ public partial class AppDbContext : DbContext
 
     public DbSet<Treatment> Treatments { get; set; }
 
+    public virtual DbSet<Emailverificationcode> Emailverificationcodes { get; set; }
+
     public virtual DbSet<Medication> Medications { get; set; }
 
     public virtual DbSet<Medicationlog> Medicationlogs { get; set; }
@@ -90,6 +92,20 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.Userid)
                 .HasConstraintName("fk_glucose_user");
         });
+
+        modelBuilder.Entity<Emailverificationcode>(entity =>
+{
+    entity.ToTable("emailverificationcodes");
+
+    entity.Property(e => e.Id).HasColumnName("id");
+    entity.Property(e => e.Fullname).HasColumnName("fullname");
+    entity.Property(e => e.Email).HasColumnName("email");
+    entity.Property(e => e.Password).HasColumnName("password");
+    entity.Property(e => e.Code).HasColumnName("code");
+    entity.Property(e => e.Expiresat).HasColumnName("expiresat");
+    entity.Property(e => e.Isused).HasColumnName("isused");
+    entity.Property(e => e.Createdat).HasColumnName("createdat");
+});
 
         modelBuilder.Entity<Medication>(entity =>
         {

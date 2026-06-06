@@ -1,0 +1,7 @@
+namespace IlacTakipApi.Models;
+
+public class VerifyCodeRequest
+{
+    public string Email { get; set; } = null!;
+    public string Code { get; set; } = null!;
+}
