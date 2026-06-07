@@ -29,7 +29,7 @@ static Future<void> registerUser({
   }
 }
 
-  static Future<Map<String, dynamic>> loginUser({
+static Future<Map<String, dynamic>> loginUser({
   required String email,
   required String password,
 }) async {
@@ -42,11 +42,17 @@ static Future<void> registerUser({
     }),
   );
 
+  final data = jsonDecode(response.body);
+
   if (response.statusCode == 200) {
-    return jsonDecode(response.body);
-  } else {
-    throw Exception('Email veya şifre hatalı');
+    return data;
   }
+
+  if (data["deletedAccount"] == true) {
+    throw data;
+  }
+
+  throw Exception(data["message"] ?? "Email veya şifre hatalı");
 }
 
 
@@ -528,6 +534,31 @@ static Future<void> changePasswordWithCode({
   if (response.statusCode != 200) {
     final data = jsonDecode(response.body);
     throw Exception(data["message"] ?? "Şifre güncellenemedi");
+  }
+}
+
+
+static Future<Map<String, dynamic>> requestDeleteAccount(int userId) async {
+  final response = await http.delete(
+    Uri.parse('$baseUrl/users/$userId/request-delete'),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  }
+
+  final data = jsonDecode(response.body);
+  throw Exception(data["message"] ?? "Hesap silme işlemi başlatılamadı");
+}
+
+static Future<void> restoreAccount(int userId) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/users/$userId/restore-account'),
+  );
+
+  if (response.statusCode != 200) {
+    final data = jsonDecode(response.body);
+    throw Exception(data["message"] ?? "Hesap geri açılamadı");
   }
 }
 

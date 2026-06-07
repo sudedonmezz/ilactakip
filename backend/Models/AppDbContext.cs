@@ -257,6 +257,8 @@ modelBuilder.Entity<Passwordresetcode>(entity =>
             entity.Property(e => e.Weight)
                 .HasPrecision(5, 2)
                 .HasColumnName("weight");
+                entity.Property(e => e.Isdeleted).HasColumnName("isdeleted");
+entity.Property(e => e.Deletedat).HasColumnName("deletedat");
         });
 
         OnModelCreatingPartial(modelBuilder);

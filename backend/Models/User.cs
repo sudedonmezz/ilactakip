@@ -22,6 +22,9 @@ public partial class User
     public string Email { get; set; } = null!;
 
     public string Password { get; set; } = null!;
+    public bool Isdeleted { get; set; }
+
+public DateTime? Deletedat { get; set; }
 
     public DateTime? Createdat { get; set; }
 

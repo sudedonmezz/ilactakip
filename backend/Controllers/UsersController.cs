@@ -23,6 +23,27 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
+
+    [HttpPost("{id}/restore-account")]
+public async Task<IActionResult> RestoreAccount(int id)
+{
+    var user = await _context.Users.FindAsync(id);
+
+    if (user == null)
+        return NotFound();
+
+    user.Isdeleted = false;
+    user.Deletedat = null;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        message = "Hesabınız tekrar aktif edildi."
+    });
+}
+
+
    [HttpPost]
 public async Task<IActionResult> CreateUser([FromBody] User user)
 {
@@ -69,6 +90,21 @@ public async Task<IActionResult> Login([FromBody] LoginRequest request)
             message = "Email veya şifre hatalı"
         });
     }
+
+if (user.Isdeleted)
+{
+    var remainingDays =
+        (user.Deletedat!.Value - DateTime.UtcNow).Days;
+
+    return BadRequest(new
+    {
+        deletedAccount = true,
+        id = user.Id,
+        remainingDays,
+        message =
+            $"Bu hesap silinmek üzere. {remainingDays} gün içinde geri açabilirsiniz."
+    });
+}
 
     return Ok(user);
 }
@@ -167,5 +203,24 @@ public async Task<IActionResult> GetUserById(int id)
     }
 
     return Ok(user);
+}
+
+[HttpDelete("{id}/request-delete")]
+public async Task<IActionResult> RequestDeleteAccount(int id)
+{
+    var user = await _context.Users.FindAsync(id);
+
+    if (user == null)
+        return NotFound(new { message = "Kullanıcı bulunamadı." });
+
+    user.Isdeleted = true;
+    user.Deletedat = DateTime.UtcNow.AddDays(30);
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        message = "Hesabınız silme işlemine alındı. 30 gün sonra kalıcı olarak silinecek."
+    });
 }
 }

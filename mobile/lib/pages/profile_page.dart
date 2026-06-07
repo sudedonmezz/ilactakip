@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
 import 'edit_profile_page.dart';
+import 'login_page.dart';
+import '../services/notification_service.dart';
 
 class ProfilePage extends StatefulWidget {
   final int userId;
@@ -89,6 +91,77 @@ class _ProfilePageState extends State<ProfilePage> {
       });
     }
   }
+
+  Future<void> requestDeleteAccount() async {
+  try {
+    await ApiService.requestDeleteAccount(widget.userId);
+
+    await NotificationService.cancelAllNotifications();
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Hesap Silme Başlatıldı"),
+        content: const Text(
+          "Hesabınız silme işlemine alındı. 30 gün içinde giriş yaparak hesabınızı geri açabilirsiniz. "
+          "30 gün sonunda hesabınız ve verileriniz kalıcı olarak silinecektir.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Tamam"),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LoginPage(),
+      ),
+      (route) => false,
+    );
+  } catch (e) {
+    if (!mounted) return;
+    showMessage("Hata", e.toString());
+  }
+}
+
+void confirmDeleteAccount() {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Hesabımı Sil"),
+      content: const Text(
+        "Hesabınız hemen silinmez. Hesabınız 30 gün boyunca pasif tutulur. "
+        "Bu süre içinde tekrar giriş yaparak hesabınızı geri açabilirsiniz. "
+        "30 gün sonunda tüm verileriniz kalıcı olarak silinir.\n\n"
+        "Devam etmek istiyor musunuz?",
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("İptal"),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+            requestDeleteAccount();
+          },
+          child: const Text(
+            "Silme İşlemini Başlat",
+            style: TextStyle(color: Colors.red),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget headerCard() {
     final fullname = getValue(getField("fullname", "Fullname"));
@@ -258,6 +331,67 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget deleteAccountCard() {
+  return Material(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(22),
+    elevation: 3,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: confirmDeleteAccount,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const Icon(
+                Icons.delete_forever,
+                color: Colors.red,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Hesabımı Sil",
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "Hesabınız 30 gün sonra kalıcı olarak silinir",
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.red,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
   Widget profileContent() {
     return RefreshIndicator(
       color: Colors.teal,
@@ -314,6 +448,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 getField("chronicDisease", "ChronicDisease"),
               ),
             ),
+            const SizedBox(height: 16),
+
+sectionTitle("Hesap İşlemleri", Icons.settings),
+
+deleteAccountCard(),
           ],
         ),
       ),

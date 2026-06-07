@@ -40,53 +40,128 @@ void girisYap() async {
 
   try {
     final user = await ApiService.loginUser(
-  email: email,
-  password: sifre,
-);
-
-if (!mounted) return;
-
-final bool profileIncomplete =
-    user["age"] == null ||
-    user["gender"] == null ||
-    user["weight"] == null ||
-    user["height"] == null;
-
-if (profileIncomplete) {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ProfileCompletePage(user: user),
-    ),
-  );
-} else {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(
-     builder: (context) => HomePage(
-  userId: user["id"] ?? user["Id"],
-),
-    ),
-  );
-}
-  } catch (e) {
-
-    String message = e.toString();
-
-  // "Exception: " kısmını kaldır
-  if (message.startsWith("Exception: ")) {
-    message = message.replaceFirst("Exception: ", "");
-  }
+      email: email,
+      password: sifre,
+    );
 
     if (!mounted) return;
 
-     showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text("Giriş Başarısız"),
-      content: Text(message),
-    ),
-  );
+    final bool profileIncomplete =
+        user["age"] == null ||
+        user["gender"] == null ||
+        user["weight"] == null ||
+        user["height"] == null;
+
+    if (profileIncomplete) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProfileCompletePage(user: user),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(
+            userId: user["id"] ?? user["Id"],
+          ),
+        ),
+      );
+    }
+  } catch (e) {
+    if (!mounted) return;
+
+    if (e is Map && e["deletedAccount"] == true) {
+      final remainingDays = e["remainingDays"] ?? 0;
+      final message = e["message"] ??
+          "Bu hesap silinmek üzere. Hesabı geri açabilirsiniz.";
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Hesap Silinmek Üzere"),
+          content: Text(
+            "$message\n\nHesabınızı tekrar aktif etmek ister misiniz?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("İptal"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                try {
+                  final userId = e["id"] ?? e["userId"];
+
+                  if (userId == null) {
+                    throw Exception("Kullanıcı ID bulunamadı.");
+                  }
+
+                  await ApiService.restoreAccount(userId);
+
+                  if (!mounted) return;
+
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text("Başarılı"),
+                      content: Text(
+                        "Hesabınız tekrar aktif edildi. Kalan süre: $remainingDays gün.",
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("Tamam"),
+                        ),
+                      ],
+                    ),
+                  );
+                } catch (error) {
+                  if (!mounted) return;
+
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text("Hata"),
+                      content: Text(error.toString()),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("Tamam"),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                "Hesabı Geri Aç",
+                style: TextStyle(color: Colors.teal),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      return;
+    }
+
+    String message = e.toString();
+
+    if (message.startsWith("Exception: ")) {
+      message = message.replaceFirst("Exception: ", "");
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Giriş Başarısız"),
+        content: Text(message),
+      ),
+    );
   }
 }
 
