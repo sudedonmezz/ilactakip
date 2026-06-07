@@ -18,8 +18,6 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
   String selectedRange = "Daily";
   DateTime selectedDate = DateTime.now();
 
-  final int onTimeToleranceMinutes = 30;
-
   @override
   void initState() {
     super.initState();
@@ -71,22 +69,8 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
     return DateTime.parse(value.toString());
   }
 
-  bool isOnTime(dynamic log) {
-    final scheduled = parseDate(log["scheduledDateTime"]);
-    final takenRaw = log["takenDateTime"];
-
-    if (takenRaw == null) return false;
-
-    final taken = parseDate(takenRaw);
-
-    final earliest = scheduled.subtract(
-      Duration(minutes: onTimeToleranceMinutes),
-    );
-
-    final latest = scheduled.add(Duration(minutes: onTimeToleranceMinutes));
-
-    return (taken.isAfter(earliest) || taken.isAtSameMomentAs(earliest)) &&
-        (taken.isBefore(latest) || taken.isAtSameMomentAs(latest));
+  String getStatus(dynamic log) {
+    return (log["status"] ?? log["Status"] ?? "").toString();
   }
 
   DateTime rangeStartDate() {
@@ -107,8 +91,8 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
     }
 
     if (selectedRange == "Yearly") {
-  return DateTime(selectedDate.year, 1, 1);
-}
+      return DateTime(selectedDate.year, 1, 1);
+    }
 
     if (selectedRange == "SixMonths") {
       return DateTime(
@@ -133,10 +117,9 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
       );
     }
 
-     if (selectedRange == "Yearly") {
-    return DateTime(selectedDate.year, 12, 31, 23, 59, 59);
-  }
-
+    if (selectedRange == "Yearly") {
+      return DateTime(selectedDate.year, 12, 31, 23, 59, 59);
+    }
 
     return DateTime(
       selectedDate.year,
@@ -163,11 +146,15 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
   int get totalTaken => filteredLogs.length;
 
   int get onTimeCount {
-    return filteredLogs.where((log) => isOnTime(log)).length;
+    return filteredLogs.where((log) => getStatus(log) == "Taken").length;
   }
 
   int get lateCount {
-    return filteredLogs.length - onTimeCount;
+    return filteredLogs.where((log) => getStatus(log) == "Late").length;
+  }
+
+  int get missedCount {
+    return filteredLogs.where((log) => getStatus(log) == "Missed").length;
   }
 
   double get onTimeRate {
@@ -249,130 +236,117 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
   }
 
   List<Map<String, dynamic>> chartData() {
-  final now = selectedDate;
+    final now = selectedDate;
 
-  const monthNames = [
-    "Oca",
-    "Şub",
-    "Mar",
-    "Nis",
-    "May",
-    "Haz",
-    "Tem",
-    "Ağu",
-    "Eyl",
-    "Eki",
-    "Kas",
-    "Ara",
-  ];
+    const monthNames = [
+      "Oca",
+      "Şub",
+      "Mar",
+      "Nis",
+      "May",
+      "Haz",
+      "Tem",
+      "Ağu",
+      "Eyl",
+      "Eki",
+      "Kas",
+      "Ara",
+    ];
 
-  if (selectedRange == "Daily") {
-    return List.generate(24, (index) {
-      final hourLogs = filteredLogs.where((log) {
+    double calculateRate(List items) {
+      final total = items.length;
+      final onTime = items.where((log) => getStatus(log) == "Taken").length;
+      return total == 0 ? 0.0 : (onTime / total) * 100;
+    }
+
+    if (selectedRange == "Daily") {
+      return List.generate(24, (index) {
+        final hourLogs = filteredLogs.where((log) {
+          final scheduled = parseDate(log["scheduledDateTime"]);
+          return scheduled.hour == index;
+        }).toList();
+
+        return {
+          "label": index.toString().padLeft(2, "0"),
+          "rate": calculateRate(hourLogs),
+        };
+      });
+    }
+
+    if (selectedRange == "Weekly") {
+      return List.generate(7, (index) {
+        final date = now.subtract(Duration(days: 6 - index));
+
+        final dayLogs = filteredLogs.where((log) {
+          final scheduled = parseDate(log["scheduledDateTime"]);
+          return scheduled.year == date.year &&
+              scheduled.month == date.month &&
+              scheduled.day == date.day;
+        }).toList();
+
+        return {
+          "label": "${date.day}/${date.month}",
+          "rate": calculateRate(dayLogs),
+        };
+      });
+    }
+
+    if (selectedRange == "Monthly") {
+      return List.generate(4, (index) {
+        final start = now.subtract(Duration(days: (4 - index) * 7));
+        final end = start.add(const Duration(days: 7));
+
+        final weekLogs = filteredLogs.where((log) {
+          final scheduled = parseDate(log["scheduledDateTime"]);
+          return (scheduled.isAfter(start) ||
+                  scheduled.isAtSameMomentAs(start)) &&
+              scheduled.isBefore(end);
+        }).toList();
+
+        return {
+          "label": "${index + 1}. H",
+          "rate": calculateRate(weekLogs),
+        };
+      });
+    }
+
+    if (selectedRange == "Yearly") {
+      return List.generate(12, (index) {
+        final month = index + 1;
+
+        final monthLogs = filteredLogs.where((log) {
+          final scheduled = parseDate(log["scheduledDateTime"]);
+          return scheduled.year == selectedDate.year &&
+              scheduled.month == month;
+        }).toList();
+
+        return {
+          "label": monthNames[index],
+          "rate": calculateRate(monthLogs),
+        };
+      });
+    }
+
+    final monthCount = selectedRange == "SixMonths" ? 6 : 12;
+
+    return List.generate(monthCount, (index) {
+      final date = DateTime(
+        now.year,
+        now.month - (monthCount - 1 - index),
+        1,
+      );
+
+      final monthLogs = filteredLogs.where((log) {
         final scheduled = parseDate(log["scheduledDateTime"]);
-        return scheduled.hour == index;
+        return scheduled.year == date.year && scheduled.month == date.month;
       }).toList();
 
-      final total = hourLogs.length;
-      final onTime = hourLogs.where((log) => isOnTime(log)).length;
-      final rate = total == 0 ? 0.0 : (onTime / total) * 100;
-
       return {
-        "label": index.toString().padLeft(2, "0"),
-        "rate": rate,
+        "label": monthNames[date.month - 1],
+        "rate": calculateRate(monthLogs),
       };
     });
   }
-
-  if (selectedRange == "Weekly") {
-    return List.generate(7, (index) {
-      final date = now.subtract(Duration(days: 6 - index));
-
-      final dayLogs = filteredLogs.where((log) {
-        final scheduled = parseDate(log["scheduledDateTime"]);
-        return scheduled.year == date.year &&
-            scheduled.month == date.month &&
-            scheduled.day == date.day;
-      }).toList();
-
-      final total = dayLogs.length;
-      final onTime = dayLogs.where((log) => isOnTime(log)).length;
-      final rate = total == 0 ? 0.0 : (onTime / total) * 100;
-
-      return {
-        "label": "${date.day}/${date.month}",
-        "rate": rate,
-      };
-    });
-  }
-
-  if (selectedRange == "Monthly") {
-    return List.generate(4, (index) {
-      final start = now.subtract(Duration(days: (4 - index) * 7));
-      final end = start.add(const Duration(days: 7));
-
-      final weekLogs = filteredLogs.where((log) {
-        final scheduled = parseDate(log["scheduledDateTime"]);
-        return (scheduled.isAfter(start) ||
-                scheduled.isAtSameMomentAs(start)) &&
-            scheduled.isBefore(end);
-      }).toList();
-
-      final total = weekLogs.length;
-      final onTime = weekLogs.where((log) => isOnTime(log)).length;
-      final rate = total == 0 ? 0.0 : (onTime / total) * 100;
-
-      return {
-        "label": "${index + 1}. H",
-        "rate": rate,
-      };
-    });
-  }
-  if (selectedRange == "Yearly") {
-  return List.generate(12, (index) {
-    final month = index + 1;
-
-    final monthLogs = filteredLogs.where((log) {
-      final scheduled = parseDate(log["scheduledDateTime"]);
-      return scheduled.year == selectedDate.year &&
-          scheduled.month == month;
-    }).toList();
-
-    final total = monthLogs.length;
-    final onTime = monthLogs.where((log) => isOnTime(log)).length;
-    final rate = total == 0 ? 0.0 : (onTime / total) * 100;
-
-    return {
-      "label": monthNames[index],
-      "rate": rate,
-    };
-  });
-}
-
-  final monthCount = selectedRange == "SixMonths" ? 6 : 12;
-
-  return List.generate(monthCount, (index) {
-    final date = DateTime(
-      now.year,
-      now.month - (monthCount - 1 - index),
-      1,
-    );
-
-    final monthLogs = filteredLogs.where((log) {
-      final scheduled = parseDate(log["scheduledDateTime"]);
-      return scheduled.year == date.year && scheduled.month == date.month;
-    }).toList();
-
-    final total = monthLogs.length;
-    final onTime = monthLogs.where((log) => isOnTime(log)).length;
-    final rate = total == 0 ? 0.0 : (onTime / total) * 100;
-
-    return {
-      "label": monthNames[date.month - 1],
-      "rate": rate,
-    };
-  });
-}
 
   String rangeText(String value) {
     if (value == "Daily") return "Günlük";
@@ -544,6 +518,7 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
                               ),
                             );
                           }
+
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
@@ -564,12 +539,12 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
                         BarChartRodData(
                           toY: rate,
                           width: selectedRange == "Daily"
-                          ? 8
-                          : selectedRange == "Yearly"
-                              ? 9
-                              : selectedRange == "SixMonths"
-                                  ? 13
-                                  : 16,
+                              ? 8
+                              : selectedRange == "Yearly"
+                                  ? 9
+                                  : selectedRange == "SixMonths"
+                                      ? 13
+                                      : 16,
                           color: Colors.teal,
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -723,7 +698,32 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
         final takenRaw = log["takenDateTime"];
         final taken = takenRaw == null ? null : parseDate(takenRaw);
         final medicationName = log["medicationName"] ?? "İlaç";
-        final onTime = isOnTime(log);
+
+        final status = getStatus(log);
+
+        final statusText = status == "Taken"
+            ? "Zamanında"
+            : status == "Late"
+                ? "Geç"
+                : status == "Missed"
+                    ? "Alınmadı"
+                    : "Bilinmiyor";
+
+        final statusColor = status == "Taken"
+            ? Colors.green
+            : status == "Late"
+                ? Colors.orange
+                : status == "Missed"
+                    ? Colors.red
+                    : Colors.grey;
+
+        final statusIcon = status == "Taken"
+            ? Icons.check_circle
+            : status == "Late"
+                ? Icons.schedule
+                : status == "Missed"
+                    ? Icons.cancel
+                    : Icons.help_outline;
 
         return Container(
           width: double.infinity,
@@ -746,12 +746,12 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: onTime ? Colors.green.shade50 : Colors.orange.shade50,
+                  color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(
-                  onTime ? Icons.check_circle : Icons.schedule,
-                  color: onTime ? Colors.green : Colors.orange,
+                  statusIcon,
+                  color: statusColor,
                 ),
               ),
               const SizedBox(width: 13),
@@ -785,9 +785,9 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
                 ),
               ),
               Text(
-                onTime ? "Zamanında" : "Geç",
+                statusText,
                 style: TextStyle(
-                  color: onTime ? Colors.green : Colors.orange,
+                  color: statusColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -805,6 +805,48 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
   String formatDateTime(DateTime date) {
     return "${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year} "
         "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+  }
+
+  Widget statsSection() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            statBox(
+              icon: Icons.check_circle,
+              title: "Zamanında",
+              value: onTimeCount.toString(),
+              color: Colors.green,
+            ),
+            const SizedBox(width: 12),
+            statBox(
+              icon: Icons.schedule,
+              title: "Geç",
+              value: lateCount.toString(),
+              color: Colors.orange,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            statBox(
+              icon: Icons.cancel,
+              title: "Alınmadı",
+              value: missedCount.toString(),
+              color: Colors.red,
+            ),
+            const SizedBox(width: 12),
+            statBox(
+              icon: Icons.list_alt,
+              title: "Toplam",
+              value: totalTaken.toString(),
+              color: Colors.teal,
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   @override
@@ -833,30 +875,7 @@ class _MedicationLogStatsPageState extends State<MedicationLogStatsPage> {
                     const SizedBox(height: 18),
                     chartCard(),
                     const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        statBox(
-                          icon: Icons.check_circle,
-                          title: "Zamanında",
-                          value: onTimeCount.toString(),
-                          color: Colors.green,
-                        ),
-                        const SizedBox(width: 12),
-                        statBox(
-                          icon: Icons.schedule,
-                          title: "Geç",
-                          value: lateCount.toString(),
-                          color: Colors.orange,
-                        ),
-                        const SizedBox(width: 12),
-                        statBox(
-                          icon: Icons.list_alt,
-                          title: "Toplam",
-                          value: totalTaken.toString(),
-                          color: Colors.teal,
-                        ),
-                      ],
-                    ),
+                    statsSection(),
                     const SizedBox(height: 22),
                     Row(
                       children: [
