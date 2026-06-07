@@ -1,6 +1,9 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter/material.dart';
+import '../main.dart';
+import '../pages/reminder_list_page.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
@@ -13,20 +16,42 @@ class NotificationService {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const DarwinInitializationSettings iosSettings =
-        DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+   const DarwinInitializationSettings iosSettings =
+    DarwinInitializationSettings(
+  requestAlertPermission: true,
+  requestBadgePermission: true,
+  requestSoundPermission: true,
+  defaultPresentAlert: true,
+  defaultPresentBadge: true,
+  defaultPresentSound: true,
+);
 
     const InitializationSettings settings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
     );
 
-    await _notifications.initialize(settings);
+  await _notifications.initialize(
+  settings,
+  onDidReceiveNotificationResponse: (NotificationResponse response) {
+    final payload = response.payload;
+    if (payload == null) return;
 
+    _openReminderPageFromPayload(payload);
+  },
+);
+
+final launchDetails =
+    await _notifications.getNotificationAppLaunchDetails();
+
+final launchPayload =
+    launchDetails?.notificationResponse?.payload;
+
+if (launchPayload != null) {
+  Future.delayed(const Duration(milliseconds: 700), () {
+    _openReminderPageFromPayload(launchPayload);
+  });
+}
     await _notifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
@@ -53,6 +78,21 @@ class NotificationService {
           sound: true,
         );
   }
+
+  static void _openReminderPageFromPayload(String payload) {
+  if (!payload.startsWith("reminders:")) return;
+
+  final userIdText = payload.split(":")[1];
+  final userId = int.tryParse(userIdText);
+
+  if (userId == null) return;
+
+  navigatorKey.currentState?.push(
+    MaterialPageRoute(
+      builder: (_) => ReminderListPage(userId: userId),
+    ),
+  );
+}
 
   static NotificationDetails _notificationDetails() {
     return const NotificationDetails(
@@ -86,6 +126,7 @@ class NotificationService {
     required String body,
     required int hour,
     required int minute,
+    required int userId,
   }) async {
     await _notifications.zonedSchedule(
       id,
@@ -95,6 +136,7 @@ class NotificationService {
       _notificationDetails(),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
+      payload: "reminders:$userId",
     );
   }
 
@@ -104,6 +146,7 @@ static Future<void> scheduleWeeklyNotification({
   required String body,
   required int hour,
   required int minute,
+  required int userId,
 }) async {
   await _notifications.zonedSchedule(
     id,
@@ -113,6 +156,7 @@ static Future<void> scheduleWeeklyNotification({
     _notificationDetails(),
     androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
     matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+    payload: "reminders:$userId",
   );
 }
   static Future<void> scheduleOnceNotification({
@@ -121,6 +165,7 @@ static Future<void> scheduleWeeklyNotification({
     required String body,
     required int hour,
     required int minute,
+    required int userId,
   }) async {
     await _notifications.zonedSchedule(
       id,
@@ -129,6 +174,7 @@ static Future<void> scheduleWeeklyNotification({
       _nextInstanceOfTime(hour, minute),
       _notificationDetails(),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      payload: "reminders:$userId",
     );
   }
 

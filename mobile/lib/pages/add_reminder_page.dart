@@ -17,6 +17,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
 
   int? selectedMedicationId;
   String selectedMedicationName = "";
+  String selectedMedicationNote = "";
 
   TimeOfDay selectedTime = TimeOfDay.now();
   List<TimeOfDay> selectedTimes = [];
@@ -43,6 +44,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
           final first = medications.first;
           selectedMedicationId = first["id"] ?? first["Id"];
           selectedMedicationName = first["name"] ?? first["Name"] ?? "";
+          selectedMedicationNote = first["notes"] ?? first["Notes"] ?? "";
         }
       });
     } catch (e) {
@@ -56,69 +58,79 @@ class _AddReminderPageState extends State<AddReminderPage> {
     }
   }
 
-  Future<void> save() async {
-    if (selectedMedicationId == null) {
-      showMessage("Hata", "Lütfen bir ilaç seçin.");
-      return;
-    }
+Future<void> save() async {
+  if (selectedMedicationId == null) {
+    showMessage("Hata", "Lütfen bir ilaç seçin.");
+    return;
+  }
 
-    final List<TimeOfDay> timesToSave =
-        frequency == "Multiple" ? selectedTimes : [selectedTime];
+  final List<TimeOfDay> timesToSave =
+      frequency == "Multiple" ? selectedTimes : [selectedTime];
 
-    if (timesToSave.isEmpty) {
-      showMessage("Hata", "Lütfen en az bir saat seçin.");
-      return;
-    }
+  if (timesToSave.isEmpty) {
+    showMessage("Hata", "Lütfen en az bir saat seçin.");
+    return;
+  }
 
-    try {
-      for (final time in timesToSave) {
-        final String frequencyToSave =
-            frequency == "Multiple" ? "Daily" : frequency;
+  try {
+    for (final time in timesToSave) {
+      final String frequencyToSave =
+          frequency == "Multiple" ? "Daily" : frequency;
 
-        await ApiService.addReminder(
-          medicationId: selectedMedicationId!,
+      final String note = selectedMedicationNote.trim();
+
+      final String notificationBody = note.isEmpty
+          ? "$selectedMedicationName alma zamanı"
+          : "$selectedMedicationName alma zamanı\nNot: $note";
+
+      await ApiService.addReminder(
+        medicationId: selectedMedicationId!,
+        hour: time.hour,
+        minute: time.minute,
+        frequencyType: frequencyToSave,
+        startDate: DateTime.now().toIso8601String().split("T").first,
+      );
+
+      final notificationId =
+          selectedMedicationId! * 10000 + time.hour * 100 + time.minute;
+
+      if (frequencyToSave == "Daily") {
+        await NotificationService.scheduleDailyNotification(
+          id: notificationId,
+          title: "İlaç zamanı",
+          body: notificationBody,
           hour: time.hour,
           minute: time.minute,
-          frequencyType: frequencyToSave,
-          startDate: DateTime.now().toIso8601String().split("T").first,
+          userId: widget.userId,
         );
-
-        final notificationId =
-            selectedMedicationId! * 10000 + time.hour * 100 + time.minute;
-
-        if (frequencyToSave == "Daily") {
-          await NotificationService.scheduleDailyNotification(
-            id: notificationId,
-            title: "İlaç zamanı",
-            body: "$selectedMedicationName alma zamanı",
-            hour: time.hour,
-            minute: time.minute,
-          );
-        } else if (frequencyToSave == "Weekly") {
-          await NotificationService.scheduleWeeklyNotification(
-            id: notificationId,
-            title: "İlaç zamanı",
-            body: "$selectedMedicationName alma zamanı",
-            hour: time.hour,
-            minute: time.minute,
-          );
-        } else if (frequencyToSave == "Once") {
-          await NotificationService.scheduleOnceNotification(
-            id: notificationId,
-            title: "İlaç zamanı",
-            body: "$selectedMedicationName alma zamanı",
-            hour: time.hour,
-            minute: time.minute,
-          );
-        }
+      } else if (frequencyToSave == "Weekly") {
+        await NotificationService.scheduleWeeklyNotification(
+          id: notificationId,
+          title: "İlaç zamanı",
+          body: notificationBody,
+          hour: time.hour,
+          minute: time.minute,
+          userId: widget.userId,
+        );
+      } else if (frequencyToSave == "Once") {
+        await NotificationService.scheduleOnceNotification(
+          id: notificationId,
+          title: "İlaç zamanı",
+          body: notificationBody,
+          hour: time.hour,
+          minute: time.minute,
+          userId: widget.userId,
+        );
       }
-
-      if (!mounted) return;
-      Navigator.pop(context, true);
-    } catch (e) {
-      showMessage("Hata", e.toString());
     }
+
+    if (!mounted) return;
+    Navigator.pop(context, true);
+  } catch (e) {
+    showMessage("Hata", e.toString());
   }
+}
+  
 
   void showMessage(String title, String message) {
     if (message.startsWith("Exception: ")) {
@@ -613,6 +625,8 @@ class _AddReminderPageState extends State<AddReminderPage> {
                                   selectedMedicationId = value;
                                   selectedMedicationName =
                                       getMedicationName(selected);
+                                  selectedMedicationNote =
+    selected["notes"] ?? selected["Notes"] ?? "";
                                 });
                               },
                             ),
