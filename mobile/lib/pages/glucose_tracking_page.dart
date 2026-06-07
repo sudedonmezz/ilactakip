@@ -3,6 +3,11 @@ import '../services/api_services.dart';
 import 'add_glucose_measurement_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'glucose_target_settings_page.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+
+import 'package:flutter/services.dart';
+
 
 class GlucoseTrackingPage extends StatefulWidget {
   final int userId;
@@ -34,6 +39,126 @@ class _GlucoseTrackingPageState extends State<GlucoseTrackingPage> {
     loadTargets();
     fetchMeasurements();
   }
+
+
+ Future<void> exportGlucosePdf() async {
+  final regularFont = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'),
+  );
+
+  final boldFont = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'),
+  );
+
+  final pdf = pw.Document(
+    theme: pw.ThemeData.withFont(
+      base: regularFont,
+      bold: boldFont,
+    ),
+  );
+
+  final sorted = [...measurements];
+
+  sorted.sort((a, b) {
+    final aDate = parseDate(a["measurementTime"]);
+    final bDate = parseDate(b["measurementTime"]);
+    return bDate.compareTo(aDate);
+  });
+
+  pdf.addPage(
+    pw.MultiPage(
+      margin: const pw.EdgeInsets.all(24),
+      build: (context) => [
+        pw.Text(
+          "Kan Şekeri Takip Raporu",
+          style: pw.TextStyle(
+            fontSize: 22,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        pw.Text("Rapor tarihi: ${formatDateTime(DateTime.now())}"),
+        pw.Text("Toplam ölçüm: ${measurements.length}"),
+        pw.Text("Ortalama değer: ${averageValue.toStringAsFixed(0)} mg/dL"),
+        pw.SizedBox(height: 16),
+        pw.Text(
+          "Hedef Aralıklar",
+          style: pw.TextStyle(
+            fontSize: 16,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        pw.Table.fromTextArray(
+          headers: ["Ölçüm Tipi", "Hedef Aralık"],
+          data: [
+            [
+              "Açlık",
+              "${glucoseTargets["FastingMin"]!.toStringAsFixed(0)}-${glucoseTargets["FastingMax"]!.toStringAsFixed(0)} mg/dL",
+            ],
+            [
+              "Tokluk",
+              "${glucoseTargets["PostMealMin"]!.toStringAsFixed(0)}-${glucoseTargets["PostMealMax"]!.toStringAsFixed(0)} mg/dL",
+            ],
+            [
+              "Rastgele",
+              "${glucoseTargets["RandomMin"]!.toStringAsFixed(0)}-${glucoseTargets["RandomMax"]!.toStringAsFixed(0)} mg/dL",
+            ],
+            [
+              "Yatmadan Önce",
+              "${glucoseTargets["BedtimeMin"]!.toStringAsFixed(0)}-${glucoseTargets["BedtimeMax"]!.toStringAsFixed(0)} mg/dL",
+            ],
+          ],
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 9),
+          headerDecoration: const pw.BoxDecoration(),
+        ),
+        pw.SizedBox(height: 18),
+        pw.Text(
+          "Ölçüm Kayıtları",
+          style: pw.TextStyle(
+            fontSize: 16,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        pw.Table.fromTextArray(
+          headers: [
+            "Değer",
+            "Tip",
+            "Durum",
+            "Hedef Aralık",
+            "Tarih",
+            "Not",
+          ],
+          data: sorted.map((item) {
+            final value = getValue(item);
+            final type = getMeasurementType(item);
+            final note = item["note"] ?? "";
+            final time = parseDate(item["measurementTime"]);
+
+            return [
+              "${value.toStringAsFixed(0)} mg/dL",
+              typeText(type),
+              glucoseStatus(value, type),
+              targetRangeText(type).replaceFirst("Hedef: ", ""),
+              formatDateTime(time),
+              note.toString(),
+            ];
+          }).toList(),
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 8),
+          cellAlignment: pw.Alignment.centerLeft,
+          headerDecoration: const pw.BoxDecoration(),
+        ),
+      ],
+    ),
+  );
+
+  await Printing.layoutPdf(
+    onLayout: (format) async => pdf.save(),
+  );
+}
 
   Future<void> loadTargets() async {
     final prefs = await SharedPreferences.getInstance();
@@ -724,13 +849,18 @@ class _GlucoseTrackingPageState extends State<GlucoseTrackingPage> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: "Hedef aralıkları düzenle",
-            onPressed: openTargetSettingsPage,
-          ),
-        ],
+       actions: [
+  IconButton(
+    icon: const Icon(Icons.picture_as_pdf),
+    tooltip: "PDF olarak indir",
+    onPressed: measurements.isEmpty ? null : exportGlucosePdf,
+  ),
+  IconButton(
+    icon: const Icon(Icons.settings),
+    tooltip: "Hedef aralıkları düzenle",
+    onPressed: openTargetSettingsPage,
+  ),
+],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: openAddMeasurementPage,
