@@ -97,6 +97,77 @@ class _GlucoseTargetSettingsPageState
     );
   }
 
+  Widget referenceInfoCard() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.blue.shade100,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: Colors.blue,
+              ),
+              SizedBox(width: 8),
+              Text(
+                "Varsayılan Hedefler",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "Varsayılan hedef aralıklar American Diabetes Association (ADA) Diyabet Bakım Standartları temel alınarak oluşturulmuştur.",
+            style: TextStyle(
+              height: 1.4,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "• Açlık: 80-130 mg/dL\n"
+            "• Tokluk: 80-180 mg/dL",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              height: 1.5,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "Rastgele ve Yatmadan Önce ölçümleri için ADA tarafından net hedef verilmediğinden uygulamada yaygın klinik referans aralıkları kullanılmıştır.",
+            style: TextStyle(
+              height: 1.4,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Bu değerleri doktorunuzun önerilerine göre değiştirebilirsiniz.",
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget targetCard({
     required String title,
     required TextEditingController minController,
@@ -165,6 +236,8 @@ class _GlucoseTargetSettingsPageState
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            referenceInfoCard(),
+
             targetCard(
               title: "Açlık",
               minController: fastingMin,
@@ -186,6 +259,7 @@ class _GlucoseTargetSettingsPageState
               maxController: bedtimeMax,
             ),
             const SizedBox(height: 10),
+
             SizedBox(
               width: double.infinity,
               height: 52,

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
 import 'add_blood_pressure_measurement_page.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:flutter/services.dart';
+
 
 class BloodPressureTrackingPage extends StatefulWidget {
   final int userId;
@@ -21,6 +25,125 @@ class _BloodPressureTrackingPageState extends State<BloodPressureTrackingPage> {
     super.initState();
     fetchMeasurements();
   }
+
+  Future<void> exportBloodPressurePdf() async {
+  final regularFont = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'),
+  );
+
+  final boldFont = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'),
+  );
+
+  final pdf = pw.Document(
+    theme: pw.ThemeData.withFont(
+      base: regularFont,
+      bold: boldFont,
+    ),
+  );
+
+  final sorted = [...measurements];
+
+  sorted.sort((a, b) {
+    final aDate = parseDate(a["measurementtime"]);
+    final bDate = parseDate(b["measurementtime"]);
+    return bDate.compareTo(aDate);
+  });
+
+  pdf.addPage(
+    pw.MultiPage(
+      margin: const pw.EdgeInsets.all(24),
+      build: (context) => [
+        pw.Text(
+          "Tansiyon Takip Raporu",
+          style: pw.TextStyle(
+            fontSize: 22,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        pw.Text("Rapor tarihi: ${formatDateTime(DateTime.now())}"),
+        pw.Text("Toplam ölçüm: ${measurements.length}"),
+        pw.Text(
+          "Ortalama büyük tansiyon: ${averageSystolic.toStringAsFixed(0)} mmHg",
+        ),
+        pw.Text(
+          "Ortalama küçük tansiyon: ${averageDiastolic.toStringAsFixed(0)} mmHg",
+        ),
+        pw.SizedBox(height: 18),
+        pw.Text(
+          "Sınıflandırma Bilgisi",
+          style: pw.TextStyle(
+            fontSize: 16,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        pw.Table.fromTextArray(
+          headers: ["Durum", "Aralık"],
+          data: [
+  ["Normal", "120/80 mmHg altı"],
+  ["Yükselme Eğilimi", "120-129 / 80 mmHg altı"],
+  ["Risk Başlangıcı", "130/80 mmHg ve üzeri"],
+  ["Yüksek Tansiyon", "140/90 mmHg ve üzeri"],
+  ["Acil Durum", "180/120 mmHg ve üzeri"],
+],
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 9),
+        ),
+        pw.Text(
+  "Kaynak: American Heart Association (AHA) & American College of Cardiology (ACC) Hypertension Guidelines.",
+  style: pw.TextStyle(
+    fontSize: 8,
+    fontStyle: pw.FontStyle.italic,
+  ),
+),
+        pw.SizedBox(height: 18),
+        pw.Text(
+          "Ölçüm Kayıtları",
+          style: pw.TextStyle(
+            fontSize: 16,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        pw.Table.fromTextArray(
+          headers: [
+            "Büyük",
+            "Küçük",
+            "Nabız",
+            "Durum",
+            "Tarih",
+            "Not",
+          ],
+          data: sorted.map((item) {
+            final systolic = getInt(item, "systolic");
+            final diastolic = getInt(item, "diastolic");
+            final pulse = getNullableInt(item, "pulse");
+            final time = parseDate(item["measurementtime"]);
+            final note = item["note"] ?? "";
+
+            return [
+              "$systolic mmHg",
+              "$diastolic mmHg",
+              pulse == null ? "-" : pulse.toString(),
+              bloodPressureStatus(systolic, diastolic),
+              formatDateTime(time),
+              note.toString(),
+            ];
+          }).toList(),
+          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 8),
+          cellAlignment: pw.Alignment.centerLeft,
+        ),
+      ],
+    ),
+  );
+
+  await Printing.layoutPdf(
+    onLayout: (format) async => pdf.save(),
+  );
+}
 
   Future<void> fetchMeasurements() async {
     try {
@@ -613,6 +736,13 @@ class _BloodPressureTrackingPageState extends State<BloodPressureTrackingPage> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+    IconButton(
+      icon: const Icon(Icons.picture_as_pdf),
+      tooltip: "PDF olarak indir",
+      onPressed: measurements.isEmpty ? null : exportBloodPressurePdf,
+    ),
+  ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: openAddMeasurementPage,
