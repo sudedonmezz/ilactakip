@@ -474,5 +474,62 @@ static Future<Map<String, dynamic>> googleLogin() async {
   );
 }
 
+static Future<void> sendPasswordResetCode({
+  required String email,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/passwordreset/send-code'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "email": email,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    final data = jsonDecode(response.body);
+    throw Exception(data["message"] ?? "Kod gönderilemedi");
+  }
+}
+
+static Future<void> verifyPasswordResetCode({
+  required String email,
+  required String code,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/passwordreset/verify-code'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "email": email,
+      "code": code,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    final data = jsonDecode(response.body);
+    throw Exception(data["message"] ?? "Kod doğrulanamadı");
+  }
+}
+
+static Future<void> changePasswordWithCode({
+  required String email,
+  required String code,
+  required String newPassword,
+}) async {
+  final response = await http.post(
+    Uri.parse('$baseUrl/passwordreset/change-password'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      "email": email,
+      "code": code,
+      "newPassword": newPassword,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    final data = jsonDecode(response.body);
+    throw Exception(data["message"] ?? "Şifre güncellenemedi");
+  }
+}
+
 
 }

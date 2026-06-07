@@ -31,6 +31,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<Passwordresetcode> Passwordresetcodes { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=ilac_takip;Username=postgres;Password=YeniGucluSifre123!");
@@ -107,6 +109,18 @@ public partial class AppDbContext : DbContext
     entity.Property(e => e.Createdat).HasColumnName("createdat");
 });
 
+modelBuilder.Entity<Passwordresetcode>(entity =>
+{
+    entity.ToTable("passwordresetcodes");
+
+    entity.Property(e => e.Id).HasColumnName("id");
+    entity.Property(e => e.Email).HasColumnName("email");
+    entity.Property(e => e.Code).HasColumnName("code");
+    entity.Property(e => e.Expiresat).HasColumnName("expiresat");
+    entity.Property(e => e.Isused).HasColumnName("isused");
+    entity.Property(e => e.Attemptcount).HasColumnName("attemptcount");
+    entity.Property(e => e.Createdat).HasColumnName("createdat");
+});
         modelBuilder.Entity<Medication>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("medications_pkey");

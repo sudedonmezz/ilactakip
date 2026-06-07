@@ -3,6 +3,8 @@ using System.Net.Mail;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IlacTakipApi.Models;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace IlacTakipApi.Controllers;
 
@@ -21,6 +23,17 @@ public class EmailVerificationController : ControllerBase
         _configuration = configuration;
     }
 
+        private string HashCode(string code)
+{
+    using var sha256 = SHA256.Create();
+
+    var bytes = sha256.ComputeHash(
+        Encoding.UTF8.GetBytes(code)
+    );
+
+    return Convert.ToHexString(bytes);
+}
+
     [HttpPost("send-code")]
     public async Task<IActionResult> SendCode(
         [FromBody] EmailVerificationRequest request)
@@ -31,14 +44,16 @@ public class EmailVerificationController : ControllerBase
         if (exists)
             return BadRequest(new { message = "Bu email zaten kayıtlı." });
 
-        var code = new Random().Next(100000, 999999).ToString();
+            var code = new Random().Next(100000, 999999).ToString();
+
+        var hashedCode = HashCode(code);
 
         var verification = new Emailverificationcode
         {
             Fullname = request.Fullname,
             Email = request.Email,
             Password = request.Password,
-            Code = code,
+            Code = hashedCode,
             Expiresat = DateTime.UtcNow.AddMinutes(10),
 Isused = false,
 Createdat = DateTime.UtcNow
@@ -52,15 +67,18 @@ Createdat = DateTime.UtcNow
         return Ok(new { message = "Doğrulama kodu email adresinize gönderildi." });
     }
 
+
+
     [HttpPost("verify-code")]
     public async Task<IActionResult> VerifyCode(
         [FromBody] VerifyCodeRequest request)
     {
+      var hashedCode = HashCode(request.Code);
         var verification = await _context.Emailverificationcodes
-            .Where(x =>
-                x.Email == request.Email &&
-                x.Code == request.Code &&
-                !x.Isused)
+           .Where(x =>
+    x.Email == request.Email &&
+    x.Code == hashedCode &&
+    !x.Isused)
             .OrderByDescending(x => x.Createdat)
             .FirstOrDefaultAsync();
 

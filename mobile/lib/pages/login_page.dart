@@ -3,6 +3,7 @@ import 'register_page.dart';
 import '../services/api_services.dart';
 import 'home_page.dart';
 import 'profile_complete_page.dart';
+import 'forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -248,7 +249,36 @@ void googleIleGirisYap() async {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 6),
+
+Align(
+  alignment: Alignment.centerRight,
+  child: TextButton(
+    style: TextButton.styleFrom(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ForgotPasswordPage(),
+        ),
+      );
+    },
+    child: const Text(
+      "Şifremi Unuttum?",
+      style: TextStyle(
+        color: Colors.teal,
+        fontWeight: FontWeight.w600,
+        fontSize: 13,
+      ),
+    ),
+  ),
+),
+
+const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     height: 52,
