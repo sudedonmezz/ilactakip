@@ -101,21 +101,40 @@ class _BloodPressureTrackingPageState extends State<BloodPressureTrackingPage> {
   }
 
   String bloodPressureStatus(int systolic, int diastolic) {
-    if (systolic < 90 || diastolic < 60) return "Düşük";
-    if (systolic >= 140 || diastolic >= 90) return "Çok yüksek";
-    if (systolic >= 120 || diastolic >= 80) return "Yüksek";
-    return "Normal";
+  if (systolic >= 180 || diastolic >= 120) {
+    return "Acil Durum";
   }
+
+  if (systolic >= 140 || diastolic >= 90) {
+    return "Yüksek Tansiyon";
+  }
+
+  if (systolic >= 130 || diastolic >= 80) {
+    return "Risk Başlangıcı";
+  }
+
+  if (systolic >= 120 && diastolic < 80) {
+    return "Yükselme Eğilimi";
+  }
+
+  if (systolic < 90 || diastolic < 60) {
+    return "Düşük";
+  }
+
+  return "Normal";
+}
 
   Color bloodPressureColor(int systolic, int diastolic) {
-    final status = bloodPressureStatus(systolic, diastolic);
+  final status = bloodPressureStatus(systolic, diastolic);
 
-    if (status == "Düşük") return Colors.orange;
-    if (status == "Yüksek") return Colors.deepOrange;
-    if (status == "Çok yüksek") return Colors.red;
-    return Colors.teal;
-  }
+  if (status == "Acil Durum") return Colors.red.shade900;
+  if (status == "Yüksek Tansiyon") return Colors.red;
+  if (status == "Risk Başlangıcı") return Colors.deepOrange;
+  if (status == "Yükselme Eğilimi") return Colors.amber;
+  if (status == "Düşük") return Colors.orange;
 
+  return Colors.teal;
+}
   void showMessage(String title, String message) {
     if (message.startsWith("Exception: ")) {
       message = message.replaceFirst("Exception: ", "");
