@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_services.dart';
 import '../services/notification_service.dart';
 
@@ -27,66 +28,139 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
     super.dispose();
   }
 
-  String glucoseStatus(double value) {
-    if (value < 80) return "Low";
-    if (value < 90) return "BorderlineLow";
-    if (value >= 190) return "High";
+  String normalizeType(String type) {
+    final value = type.trim().toLowerCase();
+
+    if (value == "fasting" || value == "açlık" || value == "aclik") {
+      return "Fasting";
+    }
+
+    if (value == "postmeal" || value == "tokluk") {
+      return "PostMeal";
+    }
+
+    if (value == "bedtime" || value == "yatmadan önce") {
+      return "Bedtime";
+    }
+
+    return "Random";
+  }
+
+  Future<Map<String, double>> getGlucoseTargets() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    return {
+      "FastingMin": prefs.getDouble("fastingMin") ?? 80,
+      "FastingMax": prefs.getDouble("fastingMax") ?? 130,
+      "PostMealMin": prefs.getDouble("postMin") ?? 80,
+      "PostMealMax": prefs.getDouble("postMax") ?? 180,
+      "RandomMin": prefs.getDouble("randomMin") ?? 70,
+      "RandomMax": prefs.getDouble("randomMax") ?? 180,
+      "BedtimeMin": prefs.getDouble("bedtimeMin") ?? 90,
+      "BedtimeMax": prefs.getDouble("bedtimeMax") ?? 150,
+    };
+  }
+
+  double targetMin(String type, Map<String, double> targets) {
+    if (type == "Fasting") return targets["FastingMin"]!;
+    if (type == "PostMeal") return targets["PostMealMin"]!;
+    if (type == "Bedtime") return targets["BedtimeMin"]!;
+    return targets["RandomMin"]!;
+  }
+
+  double targetMax(String type, Map<String, double> targets) {
+    if (type == "Fasting") return targets["FastingMax"]!;
+    if (type == "PostMeal") return targets["PostMealMax"]!;
+    if (type == "Bedtime") return targets["BedtimeMax"]!;
+    return targets["RandomMax"]!;
+  }
+
+  String glucoseStatus(
+    double value,
+    String measurementType,
+    Map<String, double> targets,
+  ) {
+    final type = normalizeType(measurementType);
+    final min = targetMin(type, targets);
+    final max = targetMax(type, targets);
+
+    if (value < min) return "Low";
+    if (value > max) return "High";
+
     return "Normal";
   }
 
-  Future<void> handleGlucoseAlert(double value) async {
-  final status = glucoseStatus(value);
+  Future<void> handleGlucoseAlert(
+    double value,
+    String measurementType,
+  ) async {
+    final targets = await getGlucoseTargets();
 
-  if (status == "Normal" || status == "BorderlineLow") {
-    return;
+    final status = glucoseStatus(
+      value,
+      measurementType,
+      targets,
+    );
+
+    const notificationId = 900001;
+
+    await NotificationService.cancelNotification(notificationId);
+
+    if (status == "Normal") {
+      return;
+    }
+
+    final reminderTime = DateTime.now().add(
+      const Duration(minutes: 30),
+    );
+
+    if (status == "High") {
+      await NotificationService.scheduleGlucoseWarningNotification(
+        id: notificationId,
+        title: "Tekrar ölçüm yap",
+        body:
+            "Kan şekeriniz hedef aralığın üzerinde görünüyordu. Lütfen şimdi tekrardan ölçüm yapın ve durumunuzu takip edin.",
+        dateTime: reminderTime,
+      );
+    } else if (status == "Low") {
+      await NotificationService.scheduleGlucoseWarningNotification(
+        id: notificationId,
+        title: "Tekrar ölçüm yap",
+        body:
+            "Kan şekeriniz hedef aralığın altında görünüyordu. Lütfen şimdi tekrardan ölçüm yapın ve durumunuzu takip edin.",
+        dateTime: reminderTime,
+      );
+    }
   }
 
-  final reminderTime = DateTime.now().add(
-    const Duration(minutes: 30),
-  );
+  Future<void> showGlucoseResultMessage(double value) async {
+    final targets = await getGlucoseTargets();
 
-  const notificationId = 900001;
-
-  await NotificationService.cancelNotification(notificationId);
-
-  if (status == "High") {
-    await NotificationService.scheduleGlucoseWarningNotification(
-      id: notificationId,
-      title: "Tekrar ölçüm yap",
-      body:
-          "Kan şekeriniz yüksek görünüyordu. Lütfen tekrar ölçüm yapın.",
-      dateTime: reminderTime,
+    final status = glucoseStatus(
+      value,
+      measurementType,
+      targets,
     );
-  } else if (status == "Low") {
-    await NotificationService.scheduleGlucoseWarningNotification(
-      id: notificationId,
-      title: "Tekrar ölçüm yap",
-      body:
-          "Kan şekeriniz düşük görünüyordu. Lütfen tekrar ölçüm yapın.",
-      dateTime: reminderTime,
-    );
-  }
-}
 
-  void showGlucoseResultMessage(double value) {
-    final status = glucoseStatus(value);
+    final type = normalizeType(measurementType);
+    final min = targetMin(type, targets);
+    final max = targetMax(type, targets);
 
     String title = "Ölçüm Kaydedildi";
-    String message = "Kan şekeri ölçümünüz kaydedildi.";
+    String message =
+        "Kan şekeri ölçümünüz kaydedildi.\n\nHedef aralık: ${min.toStringAsFixed(0)}-${max.toStringAsFixed(0)} mg/dL";
 
     if (status == "High") {
       title = "Yüksek Kan Şekeri";
       message =
-          "Ölçümünüz yüksek görünüyor. Su içmeyi ihmal etmeyin, yoğun hareketten kaçının ve 30 dakika sonra tekrar ölçüm yapın.";
+          "Ölçümünüz hedef aralığın üzerinde görünüyor.\n\nHedef aralık: ${min.toStringAsFixed(0)}-${max.toStringAsFixed(0)} mg/dL\n\nLütfen durumunuzu takip edin ve 30 dakika sonra tekrar ölçüm yapın.";
     } else if (status == "Low") {
-      title = "Düşük Kan Şekeri"; 
+      title = "Düşük Kan Şekeri";
       message =
-          "Ölçümünüz düşük görünüyor. Hızlı şeker/karbonhidrat alın ve 30 dakika sonra tekrar ölçüm yapın.";
-    } else if (status == "BorderlineLow") {
-      title = "Düşük Sınırı";
-      message =
-          "Ölçümünüz düşük sınıra yakın. Kendinizi iyi hissetmiyorsanız tekrar ölçüm yapın.";
+          "Ölçümünüz hedef aralığın altında görünüyor.\n\nHedef aralık: ${min.toStringAsFixed(0)}-${max.toStringAsFixed(0)} mg/dL\n\nLütfen durumunuzu takip edin ve 30 dakika sonra tekrar ölçüm yapın.";
     }
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -130,7 +204,7 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
             : noteController.text.trim(),
       );
 
-      await handleGlucoseAlert(value);
+      await handleGlucoseAlert(value, measurementType);
 
       if (!mounted) return;
 
@@ -138,7 +212,7 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
         isSaving = false;
       });
 
-      showGlucoseResultMessage(value);
+      await showGlucoseResultMessage(value);
     } catch (e) {
       if (!mounted) return;
 

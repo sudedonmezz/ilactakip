@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
 import 'add_glucose_measurement_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'glucose_target_settings_page.dart';
 
 class GlucoseTrackingPage extends StatefulWidget {
   final int userId;
@@ -15,10 +17,41 @@ class _GlucoseTrackingPageState extends State<GlucoseTrackingPage> {
   List measurements = [];
   bool isLoading = true;
 
+  Map<String, double> glucoseTargets = {
+    "FastingMin": 80,
+    "FastingMax": 130,
+    "PostMealMin": 80,
+    "PostMealMax": 180,
+    "RandomMin": 70,
+    "RandomMax": 180,
+    "BedtimeMin": 90,
+    "BedtimeMax": 150,
+  };
+
   @override
   void initState() {
     super.initState();
+    loadTargets();
     fetchMeasurements();
+  }
+
+  Future<void> loadTargets() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!mounted) return;
+
+    setState(() {
+      glucoseTargets = {
+        "FastingMin": prefs.getDouble("fastingMin") ?? 80,
+        "FastingMax": prefs.getDouble("fastingMax") ?? 130,
+        "PostMealMin": prefs.getDouble("postMin") ?? 80,
+        "PostMealMax": prefs.getDouble("postMax") ?? 180,
+        "RandomMin": prefs.getDouble("randomMin") ?? 70,
+        "RandomMax": prefs.getDouble("randomMax") ?? 180,
+        "BedtimeMin": prefs.getDouble("bedtimeMin") ?? 90,
+        "BedtimeMax": prefs.getDouble("bedtimeMax") ?? 150,
+      };
+    });
   }
 
   Future<void> fetchMeasurements() async {
@@ -77,6 +110,20 @@ class _GlucoseTrackingPageState extends State<GlucoseTrackingPage> {
     }
   }
 
+  Future<void> openTargetSettingsPage() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const GlucoseTargetSettingsPage(),
+      ),
+    );
+
+    if (result == true) {
+      await loadTargets();
+      setState(() {});
+    }
+  }
+
   Future<void> deleteMeasurement(int id) async {
     try {
       await ApiService.deleteGlucoseMeasurement(id);
@@ -128,6 +175,41 @@ class _GlucoseTrackingPageState extends State<GlucoseTrackingPage> {
     return double.tryParse(value.toString()) ?? 0;
   }
 
+  String normalizeType(String type) {
+  final value = type.trim().toLowerCase();
+
+  if (value == "fasting" || value == "açlık" || value == "aclik") {
+    return "Fasting";
+  }
+
+  if (value == "postmeal" || value == "tokluk") {
+    return "PostMeal";
+  }
+
+  if (value == "bedtime" || value == "yatmadan önce") {
+    return "Bedtime";
+  }
+
+  return "Random";
+}
+
+ String getMeasurementType(dynamic measurement) {
+  final raw = (measurement["measurementType"] ??
+          measurement["MeasurementType"] ??
+          "Random")
+      .toString();
+
+  return normalizeType(raw);
+}
+
+  String typeText(String type) {
+    if (type == "Fasting") return "Açlık";
+    if (type == "PostMeal") return "Tokluk";
+    if (type == "Bedtime") return "Yatmadan Önce";
+    if (type == "Random") return "Rastgele";
+    return type;
+  }
+
   double get averageValue {
     if (measurements.isEmpty) return 0;
 
@@ -153,22 +235,87 @@ class _GlucoseTrackingPageState extends State<GlucoseTrackingPage> {
     return getValue(sorted.first);
   }
 
-  Color glucoseColor(double value) {
-  if (value <= 75) return Colors.red;
-  if (value < 90) return Colors.orange;
-  if (value >= 190) return Colors.red;
-  return Colors.teal;
-}
+  String get latestType {
+    if (measurements.isEmpty) return "Random";
 
-String glucoseStatus(double value) {
-  if (value <= 75) return "Düşük";
-  if (value < 90) return "Düşük sınırı";
-  if (value >= 190) return "Yüksek";
-  return "Normal";
-}
+    final sorted = [...measurements];
+
+    sorted.sort((a, b) {
+      final aDate = parseDate(a["measurementTime"]);
+      final bDate = parseDate(b["measurementTime"]);
+      return bDate.compareTo(aDate);
+    });
+
+    return getMeasurementType(sorted.first);
+  }
+
+  double targetMin(String measurementType) {
+    if (measurementType == "Fasting") {
+      return glucoseTargets["FastingMin"]!;
+    }
+
+    if (measurementType == "PostMeal") {
+      return glucoseTargets["PostMealMin"]!;
+    }
+
+    if (measurementType == "Bedtime") {
+      return glucoseTargets["BedtimeMin"]!;
+    }
+
+    return glucoseTargets["RandomMin"]!;
+  }
+
+  double targetMax(String measurementType) {
+    if (measurementType == "Fasting") {
+      return glucoseTargets["FastingMax"]!;
+    }
+
+    if (measurementType == "PostMeal") {
+      return glucoseTargets["PostMealMax"]!;
+    }
+
+    if (measurementType == "Bedtime") {
+      return glucoseTargets["BedtimeMax"]!;
+    }
+
+    return glucoseTargets["RandomMax"]!;
+  }
+
+  String targetRangeText(String measurementType) {
+    final min = targetMin(measurementType);
+    final max = targetMax(measurementType);
+
+    return "Hedef: ${min.toStringAsFixed(0)}-${max.toStringAsFixed(0)} mg/dL";
+  }
+
+  String glucoseStatus(
+    double value,
+    String measurementType,
+  ) {
+    final min = targetMin(measurementType);
+    final max = targetMax(measurementType);
+
+    if (value < min) return "Düşük";
+    if (value > max) return "Yüksek";
+
+    return "Hedef Aralıkta";
+  }
+
+  Color glucoseColor(
+    double value,
+    String measurementType,
+  ) {
+    final status = glucoseStatus(value, measurementType);
+
+    if (status == "Düşük") return Colors.orange;
+    if (status == "Yüksek") return Colors.red;
+
+    return Colors.teal;
+  }
 
   Widget headerCard() {
     final latest = latestValue;
+    final type = latestType;
 
     return Container(
       width: double.infinity,
@@ -230,12 +377,22 @@ String glucoseStatus(double value) {
                 Text(
                   measurements.isEmpty
                       ? "İlk ölçümünüzü ekleyin"
-                      : "Son ölçüm: ${glucoseStatus(latest)}",
+                      : "${typeText(type)}: ${glucoseStatus(latest, type)}",
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 13,
                   ),
                 ),
+                if (!measurements.isEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    targetRangeText(type),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -356,10 +513,10 @@ String glucoseStatus(double value) {
   Widget measurementCard(dynamic measurement) {
     final id = measurement["id"];
     final value = getValue(measurement);
-    final type = measurement["measurementType"] ?? "Ölçüm";
+    final type = getMeasurementType(measurement);
     final note = measurement["note"] ?? "";
     final time = parseDate(measurement["measurementTime"]);
-    final color = glucoseColor(value);
+    final color = glucoseColor(value, type);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -411,7 +568,7 @@ String glucoseStatus(double value) {
                   children: [
                     chip(
                       icon: Icons.category,
-                      text: type.toString(),
+                      text: typeText(type),
                       color: Colors.teal,
                     ),
                     chip(
@@ -421,8 +578,13 @@ String glucoseStatus(double value) {
                     ),
                     chip(
                       icon: Icons.info_outline,
-                      text: glucoseStatus(value),
+                      text: glucoseStatus(value, type),
                       color: color,
+                    ),
+                    chip(
+                      icon: Icons.track_changes,
+                      text: targetRangeText(type),
+                      color: Colors.blueGrey,
                     ),
                   ],
                 ),
@@ -562,6 +724,13 @@ String glucoseStatus(double value) {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: "Hedef aralıkları düzenle",
+            onPressed: openTargetSettingsPage,
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: openAddMeasurementPage,
