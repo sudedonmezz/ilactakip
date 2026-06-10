@@ -34,29 +34,14 @@ class _AddBloodPressureMeasurementPageState
     super.dispose();
   }
 
- String bloodPressureStatus(int systolic, int diastolic) {
-  if (systolic >= 180 || diastolic >= 120) {
-    return "Emergency";
+  String bloodPressureStatus(int systolic, int diastolic) {
+    if (systolic >= 180 || diastolic >= 120) return "Acil Durum";
+    if (systolic < 90 || diastolic < 60) return "Düşük";
+    if (systolic >= 140 || diastolic >= 90) return "Yüksek Tansiyon";
+    if (systolic >= 130 || diastolic >= 80) return "Risk Başlangıcı";
+    if (systolic >= 120 && systolic < 130 && diastolic < 80) return "Yükselme Eğilimi";
+    return "Normal";
   }
-
-  if (systolic >= 140 || diastolic >= 90) {
-    return "High";
-  }
-
-  if (systolic >= 130 || diastolic >= 80) {
-    return "Risk";
-  }
-
-  if (systolic >= 120 && diastolic < 80) {
-    return "Elevated";
-  }
-
-  if (systolic < 90 || diastolic < 60) {
-    return "Low";
-  }
-
-  return "Normal";
-}
 
   Future<void> handleBloodPressureAlert(int systolic, int diastolic) async {
     final status = bloodPressureStatus(systolic, diastolic);
@@ -66,44 +51,37 @@ class _AddBloodPressureMeasurementPageState
       return;
     }
 
-    final reminderTime = DateTime.now().add(
-      const Duration(minutes: 1),
-    );
-
+    final reminderTime = DateTime.now().add(const Duration(minutes: 1));
     const notificationId = 900002;
 
     await NotificationService.cancelNotification(notificationId);
-if (status == "Emergency") {
-  await NotificationService.scheduleGlucoseWarningNotification(
-    id: notificationId,
-    title: "Acil tansiyon uyarısı",
-    body:
-        "Tansiyonunuz çok yüksek görünüyor. Dinlenin, tekrar ölçün ve gerekirse acil sağlık desteği alın.",
-    dateTime: reminderTime,
-  ); }
-   else if (status == "Risk" || status == "Elevated") {
-  await NotificationService.scheduleGlucoseWarningNotification(
-    id: notificationId,
-    title: "Tansiyonunuzu tekrar ölçün",
-    body:
-        "Tansiyonunuz riskli aralıkta görünüyor. Dinlenin ve tekrar ölçüm yapın.",
-    dateTime: reminderTime,
-  );
-  }
-    else if (status == "High") {
+
+    if (status == "Acil Durum") {
       await NotificationService.scheduleGlucoseWarningNotification(
         id: notificationId,
-        title: "Tansiyonunuzu tekrar ölçün",
-        body:
-            "Tansiyonunuz yüksek görünüyordu. Dinlenin ve tekrar ölçüm yapın.",
+        title: "Acil tansiyon uyarısı",
+        body: "Tansiyonunuz çok yüksek görünüyor. Dinlenin, tekrar ölçün ve gerekirse acil sağlık desteği alın.",
         dateTime: reminderTime,
       );
-    } else if (status == "Low") {
+    } else if (status == "Risk Başlangıcı" || status == "Yükselme Eğilimi") {
       await NotificationService.scheduleGlucoseWarningNotification(
         id: notificationId,
         title: "Tansiyonunuzu tekrar ölçün",
-        body:
-            "Tansiyonunuz düşük görünüyordu. Sıvı alın ve tekrar ölçüm yapın.",
+        body: "Tansiyonunuz riskli aralıkta görünüyor. Dinlenin ve tekrar ölçüm yapın.",
+        dateTime: reminderTime,
+      );
+    } else if (status == "Yüksek Tansiyon") {
+      await NotificationService.scheduleGlucoseWarningNotification(
+        id: notificationId,
+        title: "Tansiyonunuzu tekrar ölçün",
+        body: "Tansiyonunuz yüksek görünüyordu. Dinlenin ve tekrar ölçüm yapın.",
+        dateTime: reminderTime,
+      );
+    } else if (status == "Düşük") {
+      await NotificationService.scheduleGlucoseWarningNotification(
+        id: notificationId,
+        title: "Tansiyonunuzu tekrar ölçün",
+        body: "Tansiyonunuz düşük görünüyordu. Sıvı alın ve tekrar ölçüm yapın.",
         dateTime: reminderTime,
       );
     }

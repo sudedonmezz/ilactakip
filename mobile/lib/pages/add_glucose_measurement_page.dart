@@ -111,7 +111,7 @@ class _AddGlucoseMeasurementPageState extends State<AddGlucoseMeasurementPage> {
     }
 
     final reminderTime = DateTime.now().add(
-      const Duration(minutes: 30),
+      const Duration(minutes: 1),
     );
 
     if (status == "High") {

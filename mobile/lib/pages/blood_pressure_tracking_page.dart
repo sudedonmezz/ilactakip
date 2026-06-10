@@ -27,128 +27,127 @@ class _BloodPressureTrackingPageState extends State<BloodPressureTrackingPage> {
   }
 
   Future<void> exportBloodPressurePdf() async {
-  final regularFont = pw.Font.ttf(
-    await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'),
-  );
+    final regularFont = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'),
+    );
 
-  final boldFont = pw.Font.ttf(
-    await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'),
-  );
+    final boldFont = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'),
+    );
 
-  final pdf = pw.Document(
-    theme: pw.ThemeData.withFont(
-      base: regularFont,
-      bold: boldFont,
-    ),
-  );
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: regularFont,
+        bold: boldFont,
+      ),
+    );
 
-  final sorted = [...measurements];
+    final sorted = [...measurements];
 
-  sorted.sort((a, b) {
-    final aDate = parseDate(a["measurementtime"]);
-    final bDate = parseDate(b["measurementtime"]);
-    return bDate.compareTo(aDate);
-  });
+    sorted.sort((a, b) {
+      final aDate = parseDate(a["measurementtime"]);
+      final bDate = parseDate(b["measurementtime"]);
+      return bDate.compareTo(aDate);
+    });
 
-  pdf.addPage(
-    pw.MultiPage(
-      margin: const pw.EdgeInsets.all(24),
-      build: (context) => [
-        pw.Text(
-          "Tansiyon Takip Raporu",
-          style: pw.TextStyle(
-            fontSize: 22,
-            fontWeight: pw.FontWeight.bold,
+    pdf.addPage(
+      pw.MultiPage(
+        margin: const pw.EdgeInsets.all(24),
+        build: (context) => [
+          pw.Text(
+            "Tansiyon Takip Raporu",
+            style: pw.TextStyle(
+              fontSize: 22,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
-        ),
-        pw.SizedBox(height: 8),
-        pw.Text("Rapor tarihi: ${formatDateTime(DateTime.now())}"),
-        pw.Text("Toplam ölçüm: ${measurements.length}"),
-        pw.Text(
-          "Ortalama büyük tansiyon: ${averageSystolic.toStringAsFixed(0)} mmHg",
-        ),
-        pw.Text(
-          "Ortalama küçük tansiyon: ${averageDiastolic.toStringAsFixed(0)} mmHg",
-        ),
-        pw.SizedBox(height: 18),
-        pw.Text(
-          "Sınıflandırma Bilgisi",
-          style: pw.TextStyle(
-            fontSize: 16,
-            fontWeight: pw.FontWeight.bold,
+          pw.SizedBox(height: 8),
+          pw.Text("Rapor tarihi: ${formatDateTime(DateTime.now())}"),
+          pw.Text("Toplam ölçüm: ${measurements.length}"),
+          pw.Text(
+            "Ortalama büyük tansiyon: ${averageSystolic.toStringAsFixed(0)} mmHg",
           ),
-        ),
-        pw.SizedBox(height: 8),
-        pw.Table.fromTextArray(
-          headers: ["Durum", "Aralık"],
-          data: [
-  ["Normal", "120/80 mmHg altı"],
-  ["Yükselme Eğilimi", "120-129 / 80 mmHg altı"],
-  ["Risk Başlangıcı", "130/80 mmHg ve üzeri"],
-  ["Yüksek Tansiyon", "140/90 mmHg ve üzeri"],
-  ["Acil Durum", "180/120 mmHg ve üzeri"],
-],
-          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          cellStyle: const pw.TextStyle(fontSize: 9),
-        ),
-        pw.Text(
-  "Kaynak: American Heart Association (AHA) & American College of Cardiology (ACC) Hypertension Guidelines.",
-  style: pw.TextStyle(
-    fontSize: 8,
-    fontStyle: pw.FontStyle.italic,
-  ),
-),
-        pw.SizedBox(height: 18),
-        pw.Text(
-          "Ölçüm Kayıtları",
-          style: pw.TextStyle(
-            fontSize: 16,
-            fontWeight: pw.FontWeight.bold,
+          pw.Text(
+            "Ortalama küçük tansiyon: ${averageDiastolic.toStringAsFixed(0)} mmHg",
           ),
-        ),
-        pw.SizedBox(height: 8),
-        pw.Table.fromTextArray(
-          headers: [
-            "Büyük",
-            "Küçük",
-            "Nabız",
-            "Durum",
-            "Tarih",
-            "Not",
-          ],
-          data: sorted.map((item) {
-            final systolic = getInt(item, "systolic");
-            final diastolic = getInt(item, "diastolic");
-            final pulse = getNullableInt(item, "pulse");
-            final time = parseDate(item["measurementtime"]);
-            final note = item["note"] ?? "";
+          pw.SizedBox(height: 18),
+          pw.Text(
+            "Sınıflandırma Bilgisi",
+            style: pw.TextStyle(
+              fontSize: 16,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Table.fromTextArray(
+            headers: ["Durum", "Aralık"],
+            data: [
+              ["Normal", "120/80 mmHg altı"],
+              ["Yükselme Eğilimi", "120-129 / 80 mmHg altı"],
+              ["Risk Başlangıcı", "130/80 mmHg ve üzeri"],
+              ["Yüksek Tansiyon", "140/90 mmHg ve üzeri"],
+              ["Acil Durum", "180/120 mmHg ve üzeri"],
+            ],
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            cellStyle: const pw.TextStyle(fontSize: 9),
+          ),
+          pw.Text(
+            "Kaynak: American Heart Association (AHA) & American College of Cardiology (ACC) Hypertension Guidelines.",
+            style: pw.TextStyle(
+              fontSize: 8,
+              fontStyle: pw.FontStyle.italic,
+            ),
+          ),
+          pw.SizedBox(height: 18),
+          pw.Text(
+            "Ölçüm Kayıtları",
+            style: pw.TextStyle(
+              fontSize: 16,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Table.fromTextArray(
+            headers: [
+              "Büyük",
+              "Küçük",
+              "Nabız",
+              "Durum",
+              "Tarih",
+              "Not",
+            ],
+            data: sorted.map((item) {
+              final systolic = getInt(item, "systolic");
+              final diastolic = getInt(item, "diastolic");
+              final pulse = getNullableInt(item, "pulse");
+              final time = parseDate(item["measurementtime"]);
+              final note = item["note"] ?? "";
 
-            return [
-              "$systolic mmHg",
-              "$diastolic mmHg",
-              pulse == null ? "-" : pulse.toString(),
-              bloodPressureStatus(systolic, diastolic),
-              formatDateTime(time),
-              note.toString(),
-            ];
-          }).toList(),
-          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          cellStyle: const pw.TextStyle(fontSize: 8),
-          cellAlignment: pw.Alignment.centerLeft,
-        ),
-      ],
-    ),
-  );
+              return [
+                "$systolic mmHg",
+                "$diastolic mmHg",
+                pulse == null ? "-" : pulse.toString(),
+                bloodPressureStatus(systolic, diastolic),
+                formatDateTime(time),
+                note.toString(),
+              ];
+            }).toList(),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            cellStyle: const pw.TextStyle(fontSize: 8),
+            cellAlignment: pw.Alignment.centerLeft,
+          ),
+        ],
+      ),
+    );
 
-  await Printing.layoutPdf(
-    onLayout: (format) async => pdf.save(),
-  );
-}
+    await Printing.layoutPdf(
+      onLayout: (format) async => pdf.save(),
+    );
+  }
 
   Future<void> fetchMeasurements() async {
     try {
-      final data =
-          await ApiService.getBloodPressureMeasurements(widget.userId);
+      final data = await ApiService.getBloodPressureMeasurements(widget.userId);
 
       if (!mounted) return;
 
@@ -192,16 +191,16 @@ class _BloodPressureTrackingPageState extends State<BloodPressureTrackingPage> {
   int get latestSystolic {
     if (measurements.isEmpty) return 0;
     final sorted = [...measurements];
-    sorted.sort((a, b) =>
-        parseDate(b["measurementtime"]).compareTo(parseDate(a["measurementtime"])));
+    sorted.sort((a, b) => parseDate(b["measurementtime"])
+        .compareTo(parseDate(a["measurementtime"])));
     return getInt(sorted.first, "systolic");
   }
 
   int get latestDiastolic {
     if (measurements.isEmpty) return 0;
     final sorted = [...measurements];
-    sorted.sort((a, b) =>
-        parseDate(b["measurementtime"]).compareTo(parseDate(a["measurementtime"])));
+    sorted.sort((a, b) => parseDate(b["measurementtime"])
+        .compareTo(parseDate(a["measurementtime"])));
     return getInt(sorted.first, "diastolic");
   }
 
@@ -223,41 +222,29 @@ class _BloodPressureTrackingPageState extends State<BloodPressureTrackingPage> {
     return total / measurements.length;
   }
 
+  // ✅ Düzeltildi: Low kontrolü Emergency'den hemen sonra,
+  // diğer kategorilerden önce kontrol ediliyor.
   String bloodPressureStatus(int systolic, int diastolic) {
-  if (systolic >= 180 || diastolic >= 120) {
-    return "Acil Durum";
+    if (systolic >= 180 || diastolic >= 120) return "Acil Durum";
+    if (systolic < 90 || diastolic < 60) return "Düşük";
+    if (systolic >= 140 || diastolic >= 90) return "Yüksek Tansiyon";
+    if (systolic >= 130 || diastolic >= 80) return "Risk Başlangıcı";
+    if (systolic >= 120 && systolic < 130 && diastolic < 80) return "Yükselme Eğilimi";
+    return "Normal";
   }
-
-  if (systolic >= 140 || diastolic >= 90) {
-    return "Yüksek Tansiyon";
-  }
-
-  if (systolic >= 130 || diastolic >= 80) {
-    return "Risk Başlangıcı";
-  }
-
-  if (systolic >= 120 && diastolic < 80) {
-    return "Yükselme Eğilimi";
-  }
-
-  if (systolic < 90 || diastolic < 60) {
-    return "Düşük";
-  }
-
-  return "Normal";
-}
 
   Color bloodPressureColor(int systolic, int diastolic) {
-  final status = bloodPressureStatus(systolic, diastolic);
+    final status = bloodPressureStatus(systolic, diastolic);
 
-  if (status == "Acil Durum") return Colors.red.shade900;
-  if (status == "Yüksek Tansiyon") return Colors.red;
-  if (status == "Risk Başlangıcı") return Colors.deepOrange;
-  if (status == "Yükselme Eğilimi") return Colors.amber;
-  if (status == "Düşük") return Colors.orange;
+    if (status == "Acil Durum") return Colors.red.shade900;
+    if (status == "Yüksek Tansiyon") return Colors.red;
+    if (status == "Risk Başlangıcı") return Colors.deepOrange;
+    if (status == "Yükselme Eğilimi") return Colors.amber;
+    if (status == "Düşük") return Colors.orange;
 
-  return Colors.teal;
-}
+    return Colors.teal;
+  }
+
   void showMessage(String title, String message) {
     if (message.startsWith("Exception: ")) {
       message = message.replaceFirst("Exception: ", "");
@@ -737,12 +724,12 @@ class _BloodPressureTrackingPageState extends State<BloodPressureTrackingPage> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-    IconButton(
-      icon: const Icon(Icons.picture_as_pdf),
-      tooltip: "PDF olarak indir",
-      onPressed: measurements.isEmpty ? null : exportBloodPressurePdf,
-    ),
-  ],
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: "PDF olarak indir",
+            onPressed: measurements.isEmpty ? null : exportBloodPressurePdf,
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: openAddMeasurementPage,
